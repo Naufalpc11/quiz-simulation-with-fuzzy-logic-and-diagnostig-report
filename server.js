@@ -1,5 +1,6 @@
 import { supabase, supabaseAdmin } from './config/db.js';
 import authRoute from './routes/authRoute.js';
+import accountRoute from './routes/accountRoute.js';
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -9,6 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', authRoute);
+app.use('/api/', accountRoute);
 
 app.get('/health', async (_, res) => {
   try {

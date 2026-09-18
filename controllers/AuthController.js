@@ -45,11 +45,26 @@ export const login = async (req, res) => {
     // Ambil data tambahan dari public.user (yang tidak ada di auth.users)
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('user')
-      .select('nama, nim, username, role')
+      .select('nama, username, role')
       .eq('id', data.user.id)
       .single();
 
     if (profileError || !profile) {
+      console.error('Gagal mengambil profil pengguna:', {
+        authUserId: data.user.id,
+        authEmail: data.user.email,
+        supabaseUrl: process.env.SUPABASE_URL,
+        error: profileError
+          ? {
+              message: profileError.message,
+              code: profileError.code,
+              details: profileError.details,
+              hint: profileError.hint,
+            }
+          : null,
+        profileFound: Boolean(profile),
+      });
+
       return res.status(404).json(
         errorResponse({ message: 'Profil pengguna tidak ditemukan. Hubungi admin.' }),
       );
@@ -75,20 +90,32 @@ export const login = async (req, res) => {
     }
 
     // ── Catat waktu login dan kosongkan logout_time (aktif) ──
+    const sessionPayload = {
+      email: data.user.email,
+      last_login: new Date().toISOString(),
+      logout_time: null, // NULL menandakan user sedang aktif login
+    };
+
     const { error: sessionError } = await supabaseAdmin
       .from('session_login')
       .upsert(
-        {
-          email: data.user.email,
-          username: profile.username,
-          last_login: new Date().toISOString(),
-          logout_time: null, // NULL menandakan user sedang aktif login
-        },
-        { onConflict: 'username' },
+        sessionPayload,
+        { onConflict: 'email' },
       );
 
     if (sessionError) {
-      console.error('Gagal mencatat session_login:', sessionError.message);
+      console.error('Gagal mencatat session_login:', {
+        message: sessionError.message,
+        code: sessionError.code,
+        details: sessionError.details,
+        hint: sessionError.hint,
+        table: 'public.session_login',
+        conflictTarget: 'email',
+        payload: sessionPayload,
+        generatedUsername: profile.username,
+        diagnosis:
+          'Pastikan public.session_login memiliki UNIQUE atau PRIMARY KEY pada kolom email.',
+      });
     }
 
     return res.json(
@@ -102,7 +129,7 @@ export const login = async (req, res) => {
             id_user: data.user.id,
             email: data.user.email,
             nama: profile.nama,
-            nim: profile.nim,
+            username: profile.username,
             nickname: profile.username,
             role: profile.role,
           },

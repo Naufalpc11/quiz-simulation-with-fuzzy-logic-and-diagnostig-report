@@ -41,7 +41,6 @@ async function seedBulkUsers() {
       const { error: profileError } = await supabaseAdmin.from('user').insert({
         id: authData.user.id, // ID sama dengan ID di auth.users
         nama: nama,
-        nim: `${nim}`,
         username: username,
         role: DEFAULT_ROLE,
       });

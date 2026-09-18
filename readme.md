@@ -6,14 +6,12 @@ Untuk mengetes login:
 INSERT INTO public.user (
     id,
     nama,
-    nim,
     username,
     role
 )
 SELECT
     id,
     'nama (disarankan testing)',
-    'NIM_KAMU (disarankan testing)',
     LEFT(SPLIT_PART(email, '@', 1), 20),
     'mahasiswa (disarankan)'
 FROM auth.users
@@ -26,5 +24,3 @@ Untuk reset password:
 2. Cek email
 3. Ikuti langkah-langkahnya
 4. Cek login dengan password yang telah diganti
-
-TEST
