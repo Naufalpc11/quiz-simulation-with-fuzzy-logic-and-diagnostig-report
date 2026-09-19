@@ -45,7 +45,8 @@ app.use(
 app.use(express.json());
 
 app.use('/api/auth', authRoute);
-app.use('/api/', accountRoute);
+// ini kenapa ada 2 accountRoute? yang ada di AccountController.js itu khusus superadmin
+// app.use('/api/', accountRoute);
 app.use('/api/topik', topikRoute);
 app.use('/api/kuis', kuisRoute);
 app.use('/api/account', accountRoute);
