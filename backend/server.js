@@ -19,9 +19,14 @@ if (process.env.TRUST_PROXY) {
 
 // CORS dibatasi ke alamat frontend yang dikenal. Sebelumnya cors() terbuka,
 // artinya situs mana pun bisa memanggil API ini dari browser pengguna.
-const originDiizinkan = (process.env.FRONTEND_URLS || 'http://localhost:5173')
-  .split(',')
-  .map((o) => o.trim())
+// BACKEND_URL ikut diizinkan karena halaman reset password dilayani oleh
+// backend ini sendiri, lalu memanggil /api/auth/reset-password di origin
+// yang sama. Tanpa ini permintaannya ditolak CORS-nya sendiri.
+const originDiizinkan = [
+  ...(process.env.FRONTEND_URLS || 'http://localhost:5173').split(','),
+  process.env.BACKEND_URL || 'http://localhost:3000',
+]
+  .map((o) => o.trim().replace(/\/$/, ''))
   .filter(Boolean);
 
 app.use(
