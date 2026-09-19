@@ -63,7 +63,6 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-
 const validPassword = (password) => {
   const minLength = password.length >= 8;
   const hasUpper = /[A-Z]/.test(password);

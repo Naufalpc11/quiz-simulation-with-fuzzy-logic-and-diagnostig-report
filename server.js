@@ -15,6 +15,7 @@ app.use('/api/auth', authRoute);
 app.use('/api/', accountRoute);
 app.use('/api/topik', topikRoute);
 app.use('/api/kuis', kuisRoute);
+app.use('/api/account', accountRoute);
 
 app.get('/health', async (_, res) => {
   try {

@@ -11,9 +11,22 @@
     "@supabase/supabase-js": "^2.116.0",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
-    "express": "^4.22.3"
+    "express": "^4.22.3",
+    "pdf-parse": "^2.4.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
-  }
+  },
+  "description": "`Cara kerja Autentikasi`\r Untuk mengetes login:\r 1. supabase - authentication - users\r 2. Add user - masukkan email aktif dan password bebas\r 3. Buka SQL Editor, isi dengan:\r INSERT INTO public.user (\r     id,\r     nama,\r     username,\r     role\r )\r SELECT\r     id,\r     'nama (disarankan testing)',\r     LEFT(SPLIT_PART(email, '@', 1), 20),\r     'mahasiswa (disarankan)'\r FROM auth.users\r WHERE email = 'email_di_authentication@contoh.id';",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kurooo23/Capstone.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Kurooo23/Capstone/issues"
+  },
+  "homepage": "https://github.com/Kurooo23/Capstone#readme"
 }
