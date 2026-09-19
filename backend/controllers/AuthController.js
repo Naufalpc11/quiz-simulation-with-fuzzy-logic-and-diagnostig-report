@@ -328,3 +328,63 @@ export const resetPassword = async (req, res) => {
     );
   }
 };
+
+// Menukar refresh token dengan access token baru. Dipanggil frontend secara
+// diam-diam sebelum token 60 menit itu kedaluwarsa, supaya pengguna yang
+// sedang mengerjakan kuis tidak tiba-tiba terlempar ke halaman login.
+export const refresh = async (req, res) => {
+  try {
+    const { refresh_token } = req.body;
+
+    if (!refresh_token) {
+      return res.status(400).json(
+        errorResponse({ message: 'Refresh token wajib disertakan.' }),
+      );
+    }
+
+    const { data, error } = await supabase.auth.refreshSession({ refresh_token });
+
+    // Gagal berarti sesinya memang sudah tidak berlaku: kedaluwarsa, sudah
+    // logout, atau dicabut karena akun dipakai login di perangkat lain.
+    if (error || !data?.session) {
+      return res.status(401).json(
+        errorResponse({ message: 'Sesi sudah berakhir. Silakan login kembali.' }),
+      );
+    }
+
+    return res.json(
+      successResponse({
+        message: 'Sesi diperbarui.',
+        data: {
+          token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          expires_at: data.session.expires_at,
+        },
+      }),
+    );
+  } catch (error) {
+    return res.status(500).json(
+      errorResponse({ message: error.message || 'Gagal memperbarui sesi.' }),
+    );
+  }
+};
+
+// Dipakai frontend saat halaman dimuat untuk memastikan sesinya benar-benar
+// masih hidup di server, bukan sekadar ada token tersimpan di browser.
+export const me = async (req, res) => {
+  return res.json(
+    successResponse({
+      message: 'Sesi aktif.',
+      data: {
+        user: {
+          id_user: req.currentUser.id,
+          email: req.currentUser.email,
+          nama: req.currentUser.nama,
+          username: req.currentUser.username,
+          nickname: req.currentUser.username,
+          role: req.currentUser.role,
+        },
+      },
+    }),
+  );
+};
