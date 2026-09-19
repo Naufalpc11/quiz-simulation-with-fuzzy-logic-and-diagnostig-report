@@ -3,3 +3,4 @@ node_modules/
 
 dist/
 PULL_BACKEND.md
+database/
