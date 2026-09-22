@@ -13,6 +13,8 @@ router.post('/login', batasLoginPerIp, batasLoginPerAkun, login);
 router.post('/logout', logout);
 router.post('/refresh', refresh);
 router.get('/me', verifyLoggedIn, me);
+
+// JANGAN DI OTAK ATIK!! INI ADALAH ENDPOINT PAKETAN UNTUK RESET PASSWORD
 router.post('/forgot-password', batasLupaPassword, forgotPassword);
 router.get('/reset-password-page', resetPasswordPage); // dibuka dari link di email
 router.post('/reset-password', resetPassword);          // dipanggil dari fetch() di halaman itu

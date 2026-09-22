@@ -1,2 +1,6 @@
 node_modules/
 .env
+
+dist/
+PULL_BACKEND.md
+database/

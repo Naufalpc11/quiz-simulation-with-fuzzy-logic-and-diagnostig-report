@@ -202,6 +202,7 @@ export const logout = async (req, res) => {
   }
 };
 
+// JANGAN DI OTAK-ATIK!! INI ADALAH ENDPOINT PAKETAN UNTUK RESET PASSWORD: endpoint ini hanya dipakai untuk reset password di frontend, bukan untuk login.
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -269,12 +270,15 @@ export const forgotPassword = async (req, res) => {
     );
   }
 };
+
+// JANGAN DI OTAK-ATIK!! INI ADALAH ENDPOINT PAKETAN UNTUK RESET PASSWORD
 // Route GET ini yang dibuka waktu user klik link di email
 export const resetPasswordPage = (req, res) => {
   res.setHeader('Content-Type', 'text/html');
   res.sendFile(path.join(__dirname, '../templates/reset-password.html'));
 };
 
+// JANGAN DI OTAK ATIK!! INI ADALAH ENDPOINT PAKETAN UNTUK RESET PASSWORD
 export const resetPassword = async (req, res) => {
   try {
     const { access_token, password } = req.body;
