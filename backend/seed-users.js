@@ -45,9 +45,9 @@ async function seedBulkUsers() {
         continue;
       }
 
-      // 2. Masukkan profil ke tabel public.user
-      const { error: profileError } = await supabaseAdmin.from('user').insert({
-        id: authData.user.id, // ID sama dengan ID di auth.users
+      // 2. Masukkan profil ke tabel public."User"
+      const { error: profileError } = await supabaseAdmin.from('User').insert({
+        idUser: authData.user.id, // ID sama dengan ID di auth.users
         nama: nama,
         username: username,
         role: DEFAULT_ROLE,
