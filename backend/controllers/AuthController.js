@@ -42,11 +42,11 @@ export const login = async (req, res) => {
       );
     }
 
-    // Ambil data tambahan dari public.user (yang tidak ada di auth.users)
+    // Ambil data tambahan dari public."User" (yang tidak ada di auth.users)
     const { data: profile, error: profileError } = await supabaseAdmin
-      .from('user')
+      .from('User')
       .select('nama, username, role')
-      .eq('id', data.user.id)
+      .eq('idUser', data.user.id)
       .single();
 
     if (profileError || !profile) {
@@ -75,13 +75,13 @@ export const login = async (req, res) => {
     // Aturan 'satu perangkat' tetap ditegakkan, tapi pengguna tidak pernah
     // terkunci hanya karena tab ditutup atau perangkat mati sebelum logout.
     const { data: previousSession } = await supabaseAdmin
-      .from('session_login')
-      .select('logout_time')
-      .eq('email', data.user.email)
+      .from('SessionLogin')
+      .select('logoutTime')
+      .eq('idAkun', data.user.id)
       .maybeSingle();
 
     const previousSessionEnded = Boolean(
-      previousSession && previousSession.logout_time === null,
+      previousSession && previousSession.logoutTime === null,
     );
 
     // signOut() menerima JWT, bukan user id. Scope 'others' mencabut semua
@@ -95,32 +95,32 @@ export const login = async (req, res) => {
       console.error('Gagal mencabut sesi lama:', revokeError.message);
     }
 
-    // ── Catat waktu login dan kosongkan logout_time (aktif) ──
+    // ── Catat waktu login dan kosongkan logoutTime (aktif) ──
     const sessionPayload = {
-      email: data.user.email,
-      last_login: new Date().toISOString(),
-      logout_time: null, // NULL menandakan user sedang aktif login
+      idAkun: data.user.id,
+      lastLogin: new Date().toISOString(),
+      logoutTime: null, // NULL menandakan user sedang aktif login
     };
 
     const { error: sessionError } = await supabaseAdmin
-      .from('session_login')
+      .from('SessionLogin')
       .upsert(
         sessionPayload,
-        { onConflict: 'email' },
+        { onConflict: 'idAkun' },
       );
 
     if (sessionError) {
-      console.error('Gagal mencatat session_login:', {
+      console.error('Gagal mencatat SessionLogin:', {
         message: sessionError.message,
         code: sessionError.code,
         details: sessionError.details,
         hint: sessionError.hint,
-        table: 'public.session_login',
-        conflictTarget: 'email',
+        table: 'public."SessionLogin"',
+        conflictTarget: 'idAkun',
         payload: sessionPayload,
         generatedUsername: profile.username,
         diagnosis:
-          'Pastikan public.session_login memiliki UNIQUE atau PRIMARY KEY pada kolom email.',
+          'Pastikan public."SessionLogin" memiliki UNIQUE atau PRIMARY KEY pada kolom idAkun.',
       });
     }
 
@@ -167,7 +167,7 @@ export const logout = async (req, res) => {
 
     // Sesi ini sudah tidak berlaku: kedaluwarsa, atau sudah dicabut karena
     // akun dipakai login di perangkat lain. Tidak ada yang perlu ditutup.
-    // Menutup baris session_login di sini justru akan mematikan sesi BARU
+    // Menutup baris SessionLogin di sini justru akan mematikan sesi BARU
     // milik orang yang sama, jadi sengaja tidak disentuh.
     if (userError || !userData?.user) {
       return res.json(
@@ -184,9 +184,9 @@ export const logout = async (req, res) => {
     }
 
     const { error } = await supabaseAdmin
-      .from('session_login')
-      .update({ logout_time: new Date().toISOString() })
-      .eq('email', userData.user.email);
+      .from('SessionLogin')
+      .update({ logoutTime: new Date().toISOString() })
+      .eq('idAkun', userData.user.id);
 
     if (error) {
       return res.status(500).json(errorResponse({ message: error.message }));
@@ -317,11 +317,11 @@ export const resetPassword = async (req, res) => {
     // Cabut sesi lama supaya reset password benar-benar "mengusir" sesi yang mungkin dibajak
     await supabaseAdmin.auth.admin.signOut(access_token, 'global');
 
-    // Pastikan status session_login di-set logout agar user bisa langsung login kembali
+    // Pastikan status SessionLogin di-set logout agar user bisa langsung login kembali
     await supabaseAdmin
-      .from('session_login')
-      .update({ logout_time: new Date().toISOString() })
-      .eq('email', userData.user.email);
+      .from('SessionLogin')
+      .update({ logoutTime: new Date().toISOString() })
+      .eq('idAkun', userData.user.id);
 
     return res.json(
       successResponse({ message: 'Password berhasil diubah. Silakan login dengan password baru.' }),

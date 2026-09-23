@@ -18,9 +18,9 @@ export const verifySuperadmin = async (req, res, next) => {
     }
 
     const { data: profile, error: profileError } = await supabaseAdmin
-      .from('user')
-      .select('id, nama, username, role')
-      .eq('id', userData.user.id)
+      .from('User')
+      .select('idUser, nama, username, role')
+      .eq('idUser', userData.user.id)
       .single();
 
     if (profileError || !profile) {
