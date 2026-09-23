@@ -1,7 +1,7 @@
 import { supabase, supabaseAdmin } from './config/db.js';
 import authRoute from './routes/authRoute.js';
 import accountRoute from './routes/accountRoute.js';
-import topikRoute from './routes/topikRoute.js';
+import babRoute from './routes/babRoute.js';
 import kuisRoute from './routes/kuisRoute.js';
 import 'dotenv/config';
 import express from 'express';
@@ -47,14 +47,14 @@ app.use(express.json());
 app.use('/api/auth', authRoute);
 // ini kenapa ada 2 accountRoute? yang ada di AccountController.js itu khusus superadmin
 // app.use('/api/', accountRoute);
-app.use('/api/topik', topikRoute);
+app.use('/api/bab', babRoute);
 app.use('/api/kuis', kuisRoute);
 app.use('/api/account', accountRoute);
 
 app.get('/health', async (_, res) => {
   try {
     // pakai `supabase` (anon key) untuk health check publik — bukan supabaseAdmin
-    const { error } = await supabase.from('user').select('id').limit(1);
+    const { error } = await supabase.from('User').select('idUser').limit(1);
 
     if (error) throw error;
 
