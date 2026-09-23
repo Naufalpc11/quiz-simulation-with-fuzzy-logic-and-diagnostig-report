@@ -103,7 +103,9 @@ export const updateBab = async (req, res) => {
       return res.status(404).json(errorResponse({ message: 'Bab tidak ditemukan.' }));
     }
 
-    if (existing.dibuatOleh !== req.currentUser.id) {
+    // dibuatOleh NULL = pembuatnya sudah dihapus. Bab-nya tetap dipakai semua orang,
+    // jadi admin mana pun boleh mengurusnya. Tanpa ini bab itu terkunci selamanya.
+    if (existing.dibuatOleh !== null && existing.dibuatOleh !== req.currentUser.id) {
       return res.status(403).json(
         errorResponse({ message: 'Kamu hanya bisa mengubah bab yang kamu buat sendiri.' }),
       );
@@ -156,7 +158,9 @@ export const deleteBab = async (req, res) => {
       return res.status(404).json(errorResponse({ message: 'Bab tidak ditemukan.' }));
     }
 
-    if (existing.dibuatOleh !== req.currentUser.id) {
+    // dibuatOleh NULL = pembuatnya sudah dihapus. Bab-nya tetap dipakai semua orang,
+    // jadi admin mana pun boleh mengurusnya. Tanpa ini bab itu terkunci selamanya.
+    if (existing.dibuatOleh !== null && existing.dibuatOleh !== req.currentUser.id) {
       return res.status(403).json(
         errorResponse({ message: 'Kamu hanya bisa menghapus bab yang kamu buat sendiri.' }),
       );

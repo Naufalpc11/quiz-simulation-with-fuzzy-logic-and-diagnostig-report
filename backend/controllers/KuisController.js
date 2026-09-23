@@ -107,7 +107,8 @@ export const updateKuis = async (req, res) => {
       return res.status(404).json(errorResponse({ message: 'Kuis tidak ditemukan.' }));
     }
 
-    if (existing.idUser !== req.currentUser.id) {
+    // idUser NULL = pembuatnya sudah dihapus, kuisnya diwariskan ke semua admin.
+    if (existing.idUser !== null && existing.idUser !== req.currentUser.id) {
       return res.status(403).json(
         errorResponse({ message: 'Kamu hanya bisa mengubah kuis yang kamu buat sendiri.' }),
       );
@@ -158,7 +159,8 @@ export const deleteKuis = async (req, res) => {
       return res.status(404).json(errorResponse({ message: 'Kuis tidak ditemukan.' }));
     }
 
-    if (existing.idUser !== req.currentUser.id) {
+    // idUser NULL = pembuatnya sudah dihapus, kuisnya diwariskan ke semua admin.
+    if (existing.idUser !== null && existing.idUser !== req.currentUser.id) {
       return res.status(403).json(
         errorResponse({ message: 'Kamu hanya bisa menghapus kuis yang kamu buat sendiri.' }),
       );
