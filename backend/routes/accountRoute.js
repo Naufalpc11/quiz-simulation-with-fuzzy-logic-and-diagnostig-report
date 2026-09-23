@@ -1,14 +1,14 @@
-// routes/accountRoute.js
 import express from 'express';
-import { 
-    getAllUsers, createAccount, deleteAccount 
+import {
+  getAllUsers, createAccount, deleteAccount
 } from '../controllers/AccountController.js';
+import { verifyLoggedIn } from '../middleware/verifyLoggedIn.js';
 import { verifySuperadmin } from '../middleware/verifySuperAdmin.js';
 
 const router = express.Router();
 
-router.get('/', getAllUsers);
-router.post('/', verifySuperadmin, createAccount);
-router.delete('/:id', verifySuperadmin, deleteAccount);
+router.get('/', verifyLoggedIn, verifySuperadmin, getAllUsers);
+router.post('/', verifyLoggedIn, verifySuperadmin, createAccount);
+router.delete('/:id', verifyLoggedIn, verifySuperadmin, deleteAccount);
 
 export default router;

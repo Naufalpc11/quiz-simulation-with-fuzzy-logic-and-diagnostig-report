@@ -4,6 +4,7 @@ import { successResponse, errorResponse } from '../models/apiResponse.js';
 
 const VALID_ROLES = ['admin', 'pengguna'];
 
+// Awal Untuk Superadmin — endpoint ini hanya bisa diakses oleh superadmin
 // Menampilkan semua user (role admin & user) — gabungan dari auth.users (id, email) dan public.user (nama, role)
 export const getAllUsers = async (req, res) => {
   try {
@@ -203,3 +204,5 @@ export const deleteAccount = async (req, res) => {
     return res.status(500).json(errorResponse({ message: error.message || 'Gagal menghapus akun.' }));
   }
 };
+
+// Akhir dari Superadmin

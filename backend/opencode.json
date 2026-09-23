@@ -1,0 +1,18 @@
+{
+  "model": "9router/Test",
+  "provider": {
+    "9router": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "9router",
+      "options": {
+        "apiKey": "sk-0282530a0298fd11-sewzgj-9b4bc923",
+        "baseURL": "http://localhost:20128/v1"
+      },
+      "models": {
+        "Test": {
+          "name": "Test"
+        }
+      }
+    }
+  }
+}

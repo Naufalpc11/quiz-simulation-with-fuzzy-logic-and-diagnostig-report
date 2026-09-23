@@ -6,10 +6,18 @@ import { supabaseAdmin } from './config/db.js';
 // ── KONFIGURASI ──
 const START_NIM = 11231001;
 const END_NIM = 11231090;
-const DEFAULT_PASSWORD = '!tk2026!'; // Pastikan memenuhi syarat validPassword
+// JANGAN tulis password di file ini. File ini masuk repo, jadi password apa
+// pun yang ditulis di sini bisa dibaca semua orang yang punya akses repo —
+// dan email mahasiswa berpola NIM berurutan sangat mudah ditebak.
+// Jalankan begini: SEED_PASSWORD='...' node seed-users.js
+const DEFAULT_PASSWORD = process.env.SEED_PASSWORD;
 const DEFAULT_ROLE = 'Mahasiswa';
 
 async function seedBulkUsers() {
+  if (!DEFAULT_PASSWORD) {
+    console.error('SEED_PASSWORD belum diisi. Jalankan: SEED_PASSWORD="..." node seed-users.js');
+    process.exit(1);
+  }
   console.log(`🚀 Mulai generate user dari NIM ${START_NIM} sampai ${END_NIM}...\n`);
 
   let successCount = 0;
@@ -61,7 +69,6 @@ async function seedBulkUsers() {
   console.log(`🎉 Selesai!`);
   console.log(`Berhasil : ${successCount} user`);
   console.log(`Gagal    : ${failCount} user`);
-  console.log(`Password : ${DEFAULT_PASSWORD}`);
   console.log('───────────────────────────────────');
 }
 

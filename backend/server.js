@@ -8,11 +8,45 @@ import express from 'express';
 import cors from 'cors';
 
 const app = express();
-app.use(cors());
+
+// Di belakang proxy (Railway, Render, Nginx), IP asli ada di X-Forwarded-For.
+// Tanpa ini pembatas percobaan login akan melihat semua orang sebagai satu IP.
+// Sengaja tidak aktif secara default: mempercayai header itu sembarangan
+// justru membuat batasannya bisa diakali.
+if (process.env.TRUST_PROXY) {
+  app.set('trust proxy', Number(process.env.TRUST_PROXY));
+}
+
+// CORS dibatasi ke alamat frontend yang dikenal. Sebelumnya cors() terbuka,
+// artinya situs mana pun bisa memanggil API ini dari browser pengguna.
+// BACKEND_URL ikut diizinkan karena halaman reset password dilayani oleh
+// backend ini sendiri, lalu memanggil /api/auth/reset-password di origin
+// yang sama. Tanpa ini permintaannya ditolak CORS-nya sendiri.
+const originDiizinkan = [
+  ...(process.env.FRONTEND_URLS || 'http://localhost:5173').split(','),
+  process.env.BACKEND_URL || 'http://localhost:3000',
+]
+  .map((o) => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Permintaan tanpa origin berasal dari Postman, curl, atau aplikasi
+      // non-browser. Itu tetap diizinkan supaya pengujian tidak terganggu.
+      if (!origin || originDiizinkan.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin tidak diizinkan: ${origin}`));
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 app.use('/api/auth', authRoute);
-app.use('/api/', accountRoute);
+// ini kenapa ada 2 accountRoute? yang ada di AccountController.js itu khusus superadmin
+// app.use('/api/', accountRoute);
 app.use('/api/topik', topikRoute);
 app.use('/api/kuis', kuisRoute);
 app.use('/api/account', accountRoute);
