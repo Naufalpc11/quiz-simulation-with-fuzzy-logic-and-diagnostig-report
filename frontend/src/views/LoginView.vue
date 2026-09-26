@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { login, requestPasswordReset, saveSession, setNotice, takeNotice } from '../services/auth'
+import { login, requestPasswordReset, saveSession, setNotice, takeNotice, halamanAwal } from '../services/auth'
 import bgImage from '../assets/bg.jpg'
 import logoImage from '../assets/logo.png'
 
@@ -33,7 +33,7 @@ async function handleSubmit() {
       setNotice('Sesi akunmu di perangkat lain sudah diakhiri otomatis.')
     }
 
-    router.push('/dashboard')
+    router.push(halamanAwal(data.user))
   } catch (err) {
     errorMsg.value = err.message
     password.value = ''

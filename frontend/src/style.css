@@ -1,1 +1,32 @@
 @import "tailwindcss";
+
+/* Token warna dan font dari wireframe Figma (variabel --wf-*).
+   Dipakai sebagai kelas Tailwind biasa, mis. bg-wf-page, text-wf-muted. */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, monospace;
+
+  --color-wf-page: #faf7fd;
+  --color-wf-card: #ffffff;
+  --color-wf-muted-surface: #faf9fc;
+
+  --color-wf-border: #c9c5d8;
+  --color-wf-border-subtle: #e2e0ec;
+
+  --color-wf-brand: #603591;
+  --color-wf-brand-soft: #f1eaf9;
+  --color-wf-brand-border: #cbb3e4;
+
+  --color-wf-text: #1b1930;
+  --color-wf-secondary: #6b6780;
+  --color-wf-muted: #9c97ae;
+
+  --color-wf-ok: #16a34a;
+  --color-wf-no: #dc2626;
+  --color-wf-no-border: #fca5a5;
+  --color-wf-no-text: #7f1d1d;
+
+  --color-wf-accent: #ff8b00;
+  --color-wf-accent-hover: #e06b00;
+  --color-wf-accent-light: #ffd173;
+}
