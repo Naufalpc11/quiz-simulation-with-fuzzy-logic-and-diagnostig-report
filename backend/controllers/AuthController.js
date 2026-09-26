@@ -103,7 +103,8 @@ export const login = async (req, res) => {
     };
 
     const { error: sessionError } = await supabaseAdmin
-      .from('session_login')
+      .from('SessionLogin')
+      .from('SessionLogin')
       .upsert(
         sessionPayload,
         { onConflict: 'email' },
@@ -167,7 +168,8 @@ export const logout = async (req, res) => {
 
     // Sesi ini sudah tidak berlaku: kedaluwarsa, atau sudah dicabut karena
     // akun dipakai login di perangkat lain. Tidak ada yang perlu ditutup.
-    // Menutup baris session_login di sini justru akan mematikan sesi BARU
+    // Menutup baris SessionLogin di sini justru akan mematikan sesi BARU
+    // Menutup baris SessionLogin di sini justru akan mematikan sesi BARU
     // milik orang yang sama, jadi sengaja tidak disentuh.
     if (userError || !userData?.user) {
       return res.json(
@@ -317,7 +319,8 @@ export const resetPassword = async (req, res) => {
     // Cabut sesi lama supaya reset password benar-benar "mengusir" sesi yang mungkin dibajak
     await supabaseAdmin.auth.admin.signOut(access_token, 'global');
 
-    // Pastikan status session_login di-set logout agar user bisa langsung login kembali
+    // Pastikan status SessionLogin di-set logout agar user bisa langsung login kembali
+    // Pastikan status SessionLogin di-set logout agar user bisa langsung login kembali
     await supabaseAdmin
       .from('session_login')
       .update({ logout_time: new Date().toISOString() })
