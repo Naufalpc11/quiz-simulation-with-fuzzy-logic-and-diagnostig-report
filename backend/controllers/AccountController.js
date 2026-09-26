@@ -10,8 +10,8 @@ export const getAllUsers = async (req, res) => {
   try {
     // Ambil data profil dari public.user
     const { data: profiles, error: profileError } = await supabaseAdmin
-      .from('user')
-      .select('id, nama, role')
+      .from('User')
+      .select('idUser, nama, role')
       .in('role', VALID_ROLES);
 
     if (profileError) {
@@ -43,11 +43,11 @@ export const getAllUsers = async (req, res) => {
 
     // Gabungkan berdasarkan id
     const users = profiles
-      .filter((profile) => authMap.has(profile.id))
+      .filter((profile) => authMap.has(profile.idUser))
       .map((profile) => ({
-        id: profile.id,
+        id: profile.idUser,
         nama: profile.nama,
-        email: authMap.get(profile.id),
+        email: authMap.get(profile.idUser),
         role: profile.role,
       }));
 
@@ -116,9 +116,9 @@ export const createAccount = async (req, res) => {
 
     // 2. Simpan profil (public.user)
     const { data: profile, error: profileError } = await supabaseAdmin
-      .from('user')
-      .insert({ id: newUserId, nama, username, role })
-      .select('id, nama, username, role')
+      .from('User')
+      .insert({ idUser: newUserId, nama, username, role })
+      .select('idUser, nama, username, role')
       .single();
 
     if (profileError) {
@@ -130,7 +130,7 @@ export const createAccount = async (req, res) => {
     return res.status(201).json(
       successResponse({
         message: 'Akun berhasil dibuat.',
-        data: { id: profile.id, nama: profile.nama, email: normalizedEmail, role: profile.role },
+        data: { id: profile.idUser, nama: profile.nama, email: normalizedEmail, role: profile.role },
       }),
     );
   } catch (error) {
@@ -155,9 +155,9 @@ export const deleteAccount = async (req, res) => {
 
     // 1. Cek dulu apakah profil ada
     const { data: profile, error: findError } = await supabaseAdmin
-      .from('user')
-      .select('id, nama, username, role')
-      .eq('id', id)
+      .from('User')
+      .select('idUser, nama, username, role')
+      .eq('idUser', id)
       .single();
 
     if (findError || !profile) {
@@ -169,18 +169,18 @@ export const deleteAccount = async (req, res) => {
       return res.status(403).json(errorResponse({ message: 'Akun superadmin tidak bisa dihapus lewat endpoint ini.' }));
     }
 
-    // 2. Cek status online — logout_time NULL artinya user sedang aktif login
+    // 2. Cek status online — logoutTime NULL artinya user sedang aktif login
     const { data: session, error: sessionError } = await supabaseAdmin
-      .from('session_login')
-      .select('logout_time')
-      .eq('username', profile.username)
+      .from('SessionLogin')
+      .select('logoutTime')
+      .eq('idAkun', id)
       .maybeSingle();
 
     if (sessionError) {
       return res.status(500).json(errorResponse({ message: sessionError.message || 'Gagal memeriksa status sesi.' }));
     }
 
-    if (session && session.logout_time === null) {
+    if (session && session.logoutTime === null) {
       return res.status(409).json(errorResponse({ message: 'Akun sedang online, tidak dapat dihapus.' }));
     }
 
@@ -192,10 +192,10 @@ export const deleteAccount = async (req, res) => {
     }
 
     // 4. Jaga-jaga kalau FK-nya tidak cascade — hapus manual juga
-    await supabaseAdmin.from('user').delete().eq('id', id);
+    await supabaseAdmin.from('User').delete().eq('idUser', id);
 
-    // 5. Bersihkan juga baris session_login-nya biar tidak jadi sampah data
-    await supabaseAdmin.from('session_login').delete().eq('username', profile.username);
+    // 5. Bersihkan juga baris SessionLogin-nya biar tidak jadi sampah data
+    await supabaseAdmin.from('SessionLogin').delete().eq('idAkun', id);
 
     return res.json(
       successResponse({ message: `Akun "${profile.nama}" berhasil dihapus.` }),
