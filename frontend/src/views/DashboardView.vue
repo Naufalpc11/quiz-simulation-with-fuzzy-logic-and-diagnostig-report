@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { logout, clearSession, getUser, takeNotice } from '../services/auth'
+import { keluar, getUser, takeNotice } from '../services/auth'
 
 const router = useRouter()
 const user = ref(getUser())
@@ -14,19 +14,9 @@ onMounted(() => {
 
 async function handleLogout() {
   loggingOut.value = true
-  try {
-    // Backend mengenali siapa yang logout dari token, lalu mencabut
-    // sesinya di Supabase. Tanpa ini token lama masih bisa dipakai.
-    await logout()
-  } catch (err) {
-    // Logout bersifat best-effort: sesi lokal tetap dibersihkan supaya
-    // pengguna tidak terjebak di dashboard kalau server sedang bermasalah.
-    console.error('Logout di server gagal:', err.message)
-  } finally {
-    clearSession()
-    loggingOut.value = false
-    router.push('/')
-  }
+  await keluar()
+  loggingOut.value = false
+  router.push('/')
 }
 </script>
 

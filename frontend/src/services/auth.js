@@ -50,7 +50,12 @@ async function kirim(path, { method = 'POST', body, token } = {}) {
 
 function lemparKalauGagal({ res, payload }) {
   if (!res.ok || payload?.status !== 'success') {
-    throw new Error(payload?.message || `Permintaan gagal (HTTP ${res.status}).`)
+    const err = new Error(payload?.message || `Permintaan gagal (HTTP ${res.status}).`)
+    // Pemanggil kadang perlu membedakan, mis. 404 dari route yang belum
+    // dibuat (payload null karena Express membalas HTML) dengan 404 data.
+    err.status = res.status
+    err.payload = payload
+    throw err
   }
   return payload
 }
@@ -101,7 +106,7 @@ async function pastikanTokenSegar() {
 
 // Permintaan yang butuh login: token disegarkan dulu, dan kalau server tetap
 // menjawab 401 maka sesinya memang sudah tidak berlaku.
-async function kirimTerautentikasi(path, { method = 'POST', body } = {}) {
+export async function kirimTerautentikasi(path, { method = 'POST', body } = {}) {
   await pastikanTokenSegar()
 
   const hasil = await kirim(path, { method, body, token: getToken() })
@@ -126,6 +131,25 @@ export async function login(email, password) {
 
 export async function logout() {
   return kirimTerautentikasi('/auth/logout')
+}
+
+// Logout bersifat best-effort: sesi lokal tetap dibersihkan supaya
+// pengguna tidak terjebak di dalam kalau server sedang bermasalah.
+export async function keluar() {
+  try {
+    // Backend mengenali siapa yang logout dari token, lalu mencabut
+    // sesinya di Supabase. Tanpa ini token lama masih bisa dipakai.
+    await logout()
+  } catch (err) {
+    console.error('Logout di server gagal:', err.message)
+  } finally {
+    clearSession()
+  }
+}
+
+// Admin (guru) langsung ke halaman kelola kuis, role lain ke dashboard.
+export function halamanAwal(user = getUser()) {
+  return user?.role === 'admin' ? '/kuis' : '/dashboard'
 }
 
 export async function fetchMe() {
