@@ -10,8 +10,8 @@ const router = express.Router();
 
 router.get('/', verifyLoggedIn, getAllKuis);
 router.get('/:id', verifyLoggedIn, getKuisById);
-router.post('/', verifyAdmin, createKuis);
-router.put('/:id', verifyAdmin, updateKuis);
-router.delete('/:id', verifyAdmin, deleteKuis);
+router.post('/', verifyLoggedIn, verifyAdmin, createKuis);
+router.put('/:id', verifyLoggedIn, verifyAdmin, updateKuis);
+router.delete('/:id', verifyLoggedIn, verifyAdmin, deleteKuis);
 
 export default router;
