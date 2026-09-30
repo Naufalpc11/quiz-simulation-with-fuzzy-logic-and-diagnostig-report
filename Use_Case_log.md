@@ -10,7 +10,7 @@ All User:
 3. Logout
 
 Pengguna/Mahasiswa:
-1. 
+1. Melihat Soal (tanpa kunci jawaban & pembahasan)
 
 Admin:
 1. Melihat Bab
@@ -21,6 +21,10 @@ Admin:
 6. Menambahkan Kuis
 7. Mengedit Kuis
 8. Menghapus Kuis
+9. Melihat Soal
+10. Menambahkan Soal
+11. Mengedit Soal
+12. Menghapus Soal
 
 Yang Belum Kelar:
 Pengguna:
@@ -28,13 +32,8 @@ Pengguna:
 2. Melihat Roadmap
 3. Melihat Report Mahasiswa
 4. Mengerjakan Kuis
-5. Melihat Soal
 
 Admin:
 1. Melihat Akun
 2. Mengedit Akun
 3. Melihat Report Mahasiswa
-4. Melihat Soal
-5. Menambahkan Soal
-6. Mengedit Soal
-7. Menghapus Soal
