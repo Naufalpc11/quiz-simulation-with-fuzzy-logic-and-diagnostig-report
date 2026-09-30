@@ -10,8 +10,8 @@ const router = express.Router();
 
 router.get('/', verifyLoggedIn, getAllBab);
 router.get('/:id', verifyLoggedIn, getBabById);
-router.post('/', verifyAdmin, createBab);
-router.put('/:id', verifyAdmin, updateBab);
-router.delete('/:id', verifyAdmin, deleteBab);
+router.post('/', verifyLoggedIn, verifyAdmin, createBab);
+router.put('/:id', verifyLoggedIn, verifyAdmin, updateBab);
+router.delete('/:id', verifyLoggedIn, verifyAdmin, deleteBab);
 
 export default router;

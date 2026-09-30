@@ -3,6 +3,7 @@ import authRoute from './routes/authRoute.js';
 import accountRoute from './routes/accountRoute.js';
 import babRoute from './routes/babRoute.js';
 import kuisRoute from './routes/kuisRoute.js';
+import soalRoute from './routes/soalRoute.js';
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -49,6 +50,7 @@ app.use('/api/auth', authRoute);
 // app.use('/api/', accountRoute);
 app.use('/api/bab', babRoute);
 app.use('/api/kuis', kuisRoute);
+app.use('/api/soal', soalRoute);
 app.use('/api/account', accountRoute);
 
 app.get('/health', async (_, res) => {

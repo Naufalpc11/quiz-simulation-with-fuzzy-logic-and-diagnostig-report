@@ -2,6 +2,7 @@
 // seed-users.js
 import 'dotenv/config';
 import { supabaseAdmin } from './config/db.js';
+import { ROLE } from './config/roles.js';
 
 // ── KONFIGURASI ──
 const START_NIM = 11231001;
@@ -11,7 +12,7 @@ const END_NIM = 11231090;
 // dan email mahasiswa berpola NIM berurutan sangat mudah ditebak.
 // Jalankan begini: SEED_PASSWORD='...' node seed-users.js
 const DEFAULT_PASSWORD = process.env.SEED_PASSWORD;
-const DEFAULT_ROLE = 'Mahasiswa';
+const DEFAULT_ROLE = ROLE.MAHASISWA;
 
 async function seedBulkUsers() {
   if (!DEFAULT_PASSWORD) {

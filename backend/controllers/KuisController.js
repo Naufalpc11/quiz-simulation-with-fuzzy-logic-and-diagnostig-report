@@ -2,7 +2,7 @@
 import { supabaseAdmin } from '../config/db.js';
 import { successResponse, errorResponse } from '../models/apiResponse.js';
 
-const KUIS_COLUMNS = 'idKuis, idUser, idBab, judul, deskripsi, tanggalDibuat';
+const KUIS_COLUMNS = 'idKuis, idUser, idBab, judul, deskripsi, durasi, tanggalDibuat';
 
 // Menampilkan semua kuis — bisa diakses semua role yang sudah login.
 // Bisa difilter per bab lewat query ?idBab=... (dipakai mahasiswa: pilih bab dulu, baru lihat kuis-nya)
@@ -56,10 +56,15 @@ export const getKuisById = async (req, res) => {
 // Hanya admin (guru) yang bisa membuat kuis — pemiliknya adalah guru yang sedang login
 export const createKuis = async (req, res) => {
   try {
-    const { idBab, judul, deskripsi } = req.body;
+    const { idBab, judul, deskripsi, durasi } = req.body;
 
     if (!idBab || !judul || !judul.trim()) {
       return res.status(400).json(errorResponse({ message: 'idBab dan judul wajib diisi.' }));
+    }
+
+    const durasiInt = Number(durasi);
+    if (durasi === undefined || durasi === null || !Number.isInteger(durasiInt) || durasiInt <= 0) {
+      return res.status(400).json(errorResponse({ message: 'durasi wajib diisi dan harus berupa bilangan bulat positif.' }));
     }
 
     const { data, error } = await supabaseAdmin
@@ -69,6 +74,7 @@ export const createKuis = async (req, res) => {
         idBab,
         judul: judul.trim(),
         deskripsi: deskripsi ?? null,
+        durasi: durasiInt,
       })
       .select(KUIS_COLUMNS)
       .single();
@@ -91,9 +97,9 @@ export const createKuis = async (req, res) => {
 export const updateKuis = async (req, res) => {
   try {
     const { id } = req.params;
-    const { idBab, judul, deskripsi } = req.body;
+    const { idBab, judul, deskripsi, durasi } = req.body;
 
-    if (idBab === undefined && judul === undefined && deskripsi === undefined) {
+    if (idBab === undefined && judul === undefined && deskripsi === undefined && durasi === undefined) {
       return res.status(400).json(errorResponse({ message: 'Tidak ada data yang diubah.' }));
     }
 
@@ -123,6 +129,13 @@ export const updateKuis = async (req, res) => {
     }
     if (deskripsi !== undefined) updatePayload.deskripsi = deskripsi;
     if (idBab !== undefined) updatePayload.idBab = idBab;
+    if (durasi !== undefined) {
+      const durasiInt = Number(durasi);
+      if (!Number.isInteger(durasiInt) || durasiInt <= 0) {
+        return res.status(400).json(errorResponse({ message: 'durasi harus berupa bilangan bulat positif.' }));
+      }
+      updatePayload.durasi = durasiInt;
+    }
 
     const { data, error } = await supabaseAdmin
       .from('Kuis')
