@@ -149,7 +149,7 @@ export async function keluar() {
 
 // Admin (guru) langsung ke halaman kelola kuis, role lain ke dashboard.
 export function halamanAwal(user = getUser()) {
-  return user?.role === 'admin' ? '/kuis' : '/dashboard'
+  return user?.role === 'Admin' ? '/kuis' : '/dashboard'
 }
 
 export async function fetchMe() {

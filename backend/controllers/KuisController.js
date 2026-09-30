@@ -10,9 +10,10 @@ export const getAllKuis = async (req, res) => {
   try {
     const { idBab } = req.query;
 
+    // Soal(count) = jumlah soal per kuis, ditampilkan frontend di daftar kuis ("· 10 soal").
     let query = supabaseAdmin
       .from('Kuis')
-      .select(KUIS_COLUMNS)
+      .select(`${KUIS_COLUMNS}, Soal(count)`)
       .order('tanggalDibuat', { ascending: false });
 
     if (idBab) {
@@ -25,8 +26,10 @@ export const getAllKuis = async (req, res) => {
       return res.status(500).json(errorResponse({ message: error.message }));
     }
 
+    const daftar = data.map(({ Soal, ...kuis }) => ({ ...kuis, jumlahSoal: Soal[0]?.count ?? 0 }));
+
     return res.json(
-      successResponse({ message: 'Berhasil mengambil daftar kuis.', data }),
+      successResponse({ message: 'Berhasil mengambil daftar kuis.', data: daftar }),
     );
   } catch (error) {
     return res.status(500).json(errorResponse({ message: error.message || 'Gagal mengambil daftar kuis.' }));
@@ -62,20 +65,25 @@ export const createKuis = async (req, res) => {
       return res.status(400).json(errorResponse({ message: 'idBab dan judul wajib diisi.' }));
     }
 
-    const durasiInt = Number(durasi);
-    if (durasi === undefined || durasi === null || !Number.isInteger(durasiInt) || durasiInt <= 0) {
-      return res.status(400).json(errorResponse({ message: 'durasi wajib diisi dan harus berupa bilangan bulat positif.' }));
+    // durasi opsional: editor kuis di frontend belum punya isiannya, jadi kalau
+    // tidak dikirim database memakai default kolomnya (30 menit).
+    const payload = {
+      idUser: req.currentUser.id,
+      idBab,
+      judul: judul.trim(),
+      deskripsi: deskripsi ?? null,
+    };
+    if (durasi !== undefined && durasi !== null) {
+      const durasiInt = Number(durasi);
+      if (!Number.isInteger(durasiInt) || durasiInt <= 0) {
+        return res.status(400).json(errorResponse({ message: 'durasi harus berupa bilangan bulat positif.' }));
+      }
+      payload.durasi = durasiInt;
     }
 
     const { data, error } = await supabaseAdmin
       .from('Kuis')
-      .insert({
-        idUser: req.currentUser.id,
-        idBab,
-        judul: judul.trim(),
-        deskripsi: deskripsi ?? null,
-        durasi: durasiInt,
-      })
+      .insert(payload)
       .select(KUIS_COLUMNS)
       .single();
 

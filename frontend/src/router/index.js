@@ -13,8 +13,8 @@ import {
   SessionExpiredError,
 } from '../services/auth'
 
-// Endpoint tulis Bab/Kuis di backend hanya menerima role 'admin' (guru).
-const khususAdmin = { butuhLogin: true, role: 'admin' }
+// Endpoint tulis Bab/Kuis di backend hanya menerima role 'Admin' (guru).
+const khususAdmin = { butuhLogin: true, role: 'Admin' }
 
 const router = createRouter({
   history: createWebHistory(),
