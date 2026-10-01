@@ -24,11 +24,9 @@ async function panggil(path, opsi) {
   }
 }
 
-// ── Bab ──
-
-export async function ambilDaftarBab() {
-  return (await panggil('/bab', { method: 'GET' })).data
-}
+// Fungsi Bab tinggal di services/bab.js; diekspor ulang supaya halaman
+// kuis cukup mengimpor dari satu tempat.
+export { ambilDaftarBab } from './bab'
 
 // ── Kuis ──
 

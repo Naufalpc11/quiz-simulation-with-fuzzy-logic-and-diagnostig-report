@@ -2,7 +2,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminHeader from '../components/AdminHeader.vue'
+import { SessionExpiredError } from '../services/auth'
 import { ambilDaftarBab, buatBab, hapusBab, ubahBab } from '../services/bab'
+import { ambilDaftarKuis } from '../services/kuis'
 
 const router = useRouter()
 
@@ -14,6 +16,7 @@ const showForm = ref(false)
 const errorMsg = ref('')
 const infoMsg = ref('')
 const sedangMengedit = ref(false)
+const menyimpan = ref(false)
 
 const form = ref({
   idBab: null,
@@ -21,33 +24,6 @@ const form = ref({
   nomor: 1,
   ringkasan: '',
 })
-
-const fallbackData = [
-  {
-    idBab: 1,
-    namaBab: 'Ejaan',
-    urutanBab: 1,
-    deskripsi: 'Bab ini membahas dasar penulisan kata depan “di”, contoh penggunaan, dan latihan untuk memperkuat pemahaman peserta didik.',
-    tanggalDibuat: '2026-09-03T00:00:00.000Z',
-    jumlahKuis: 1,
-  },
-  {
-    idBab: 2,
-    namaBab: 'Tata Bahasa',
-    urutanBab: 2,
-    deskripsi: 'Materi yang fokus pada penggunaan tanda baca, struktur kalimat, dan penyusunan paragraf yang benar.',
-    tanggalDibuat: '2026-09-05T00:00:00.000Z',
-    jumlahKuis: 2,
-  },
-  {
-    idBab: 3,
-    namaBab: 'Kosakata',
-    urutanBab: 3,
-    deskripsi: 'Mengasah kemampuan peserta didik memilih kata yang tepat untuk menyampaikan ide dengan lancar.',
-    tanggalDibuat: '2026-09-09T00:00:00.000Z',
-    jumlahKuis: 1,
-  },
-]
 
 function formatTanggal(iso) {
   if (!iso) return '-' 
@@ -66,15 +42,23 @@ function normalizeBab(bab) {
     deskripsi: bab.deskripsi ?? '',
     tanggalDibuat: bab.tanggalDibuat ?? new Date().toISOString(),
     jumlahKuis: bab.jumlahKuis ?? bab.jumlah_kuis ?? 0,
+    status: bab.status ?? null,
   }
 }
+
+// Backend mengurutkan dari urutanBab; setelah tambah/edit urutan lokal disamakan.
+function urutkan(list) {
+  return [...list].sort((a, b) => a.urutanBab - b.urutanBab)
+}
+
+// Tabel Bab belum punya kolom status. Chip Terbit/Draf baru muncul kalau
+// backend sudah mengirimnya, sama seperti di halaman Kelola Kuis.
+const adaStatus = computed(() => daftarBab.value.some((bab) => bab.status))
 
 const daftarYangTampil = computed(() => {
   const kata = search.value.trim().toLowerCase()
   const statusMatch =
-    filterStatus.value === 'semua'
-      ? () => true
-      : (bab) => (filterStatus.value === 'terbit' ? bab.jumlahKuis > 0 : bab.jumlahKuis === 0)
+    filterStatus.value === 'semua' ? () => true : (bab) => bab.status === filterStatus.value
 
   return daftarBab.value.filter((bab) => {
     const nama = bab.namaBab.toLowerCase()
@@ -111,14 +95,31 @@ function bukaEditBab(bab) {
   errorMsg.value = ''
 }
 
+function tanganiError(err) {
+  // kirimTerautentikasi sudah membersihkan sesi dan menitipkan pesan.
+  if (err instanceof SessionExpiredError) {
+    router.push('/')
+    return
+  }
+  errorMsg.value = err?.message || 'Terjadi kesalahan.'
+}
+
+// Halaman ini dipakai untuk menguji backend, jadi kegagalan ditampilkan apa
+// adanya. Data contoh justru menutupi error dan membuat edit/hapus mengirim
+// id palsu ke server.
 async function muatBab() {
   loading.value = true
+  errorMsg.value = ''
   try {
-    const data = await ambilDaftarBab()
-    daftarBab.value = (data || []).map(normalizeBab)
+    // GET /bab tidak menyertakan jumlah kuis, jadi dihitung dari daftar kuis.
+    const [bab, kuis] = await Promise.all([ambilDaftarBab(), ambilDaftarKuis()])
+    const jumlah = new Map()
+    for (const k of kuis) jumlah.set(k.idBab, (jumlah.get(k.idBab) ?? 0) + 1)
+    daftarBab.value = urutkan(
+      (bab || []).map((b) => normalizeBab({ ...b, jumlahKuis: jumlah.get(b.idBab) ?? 0 })),
+    )
   } catch (err) {
-    console.warn('Backend bab belum siap, memakai data contoh.', err)
-    daftarBab.value = fallbackData.map(normalizeBab)
+    tanganiError(err)
   } finally {
     loading.value = false
   }
@@ -140,44 +141,54 @@ async function simpanBab() {
     deskripsi: form.value.ringkasan.trim(),
   }
 
+  menyimpan.value = true
+  errorMsg.value = ''
+  infoMsg.value = ''
   try {
     if (form.value.idBab) {
       const result = await ubahBab(form.value.idBab, payload)
-      const index = daftarBab.value.findIndex((bab) => bab.idBab === form.value.idBab)
-      if (index >= 0) {
-        daftarBab.value[index] = normalizeBab(result)
-      }
+      // Respons PUT tidak membawa jumlah kuis, jadi nilai lamanya dipertahankan.
+      daftarBab.value = urutkan(
+        daftarBab.value.map((bab) =>
+          bab.idBab === form.value.idBab ? normalizeBab({ ...result, jumlahKuis: bab.jumlahKuis }) : bab,
+        ),
+      )
       infoMsg.value = 'Bab berhasil diperbarui.'
     } else {
       const result = await buatBab(payload)
-      daftarBab.value.unshift(normalizeBab(result))
+      daftarBab.value = urutkan([...daftarBab.value, normalizeBab(result)])
       infoMsg.value = 'Bab baru berhasil ditambahkan.'
     }
 
     showForm.value = false
     resetForm()
   } catch (err) {
-    errorMsg.value = err?.message || 'Gagal menyimpan bab.'
+    tanganiError(err)
+  } finally {
+    menyimpan.value = false
   }
 }
 
 async function hapusBabSaatIni(idBab) {
-  if (!window.confirm('Hapus bab ini?')) return
+  const bab = daftarBab.value.find((b) => b.idBab === idBab)
+  const peringatan = bab?.jumlahKuis
+    ? `\n\nBab ini masih dipakai ${bab.jumlahKuis} kuis, jadi server kemungkinan akan menolaknya.`
+    : ''
+  if (!window.confirm(`Hapus bab "${bab?.namaBab}"?${peringatan}`)) return
 
+  errorMsg.value = ''
+  infoMsg.value = ''
   try {
-    await hapusBab(idBab)
-    daftarBab.value = daftarBab.value.filter((bab) => bab.idBab !== idBab)
-    infoMsg.value = 'Bab berhasil dihapus.'
+    infoMsg.value = await hapusBab(idBab)
+    daftarBab.value = daftarBab.value.filter((b) => b.idBab !== idBab)
   } catch (err) {
-    errorMsg.value = err?.message || 'Gagal menghapus bab.'
+    tanganiError(err)
   }
 }
 
 function keteranganBab(bab) {
   const tanggal = formatTanggal(bab.tanggalDibuat)
-  const menit = Math.max(3, bab.urutanBab * 2 + 4)
-  const kuis = bab.jumlahKuis ?? 0
-  return `${tanggal} • ${menit} menit baca • dipakai ${kuis} kuis`
+  return `Bab ${bab.urutanBab} • ${tanggal} • dipakai ${bab.jumlahKuis} kuis`
 }
 </script>
 
@@ -200,7 +211,7 @@ function keteranganBab(bab) {
             class="flex-1 min-w-[260px] bg-wf-card border border-wf-border rounded-md px-4 py-3 text-[18px] focus:outline-none focus:ring-2 focus:ring-wf-brand"
           />
 
-          <div class="flex flex-wrap gap-3">
+          <div v-if="adaStatus" class="flex flex-wrap gap-3">
             <button
               type="button"
               @click="filterStatus = 'semua'"
@@ -239,7 +250,7 @@ function keteranganBab(bab) {
         <p v-if="infoMsg" class="mb-4 rounded-md bg-green-50 border border-green-200 px-4 py-3 text-[15px] text-green-800">
           {{ infoMsg }}
         </p>
-        <p v-if="errorMsg" class="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-[15px] text-red-700">
+        <p v-if="errorMsg && !showForm" role="alert" class="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-[15px] text-red-700">
           {{ errorMsg }}
         </p>
 
@@ -253,8 +264,12 @@ function keteranganBab(bab) {
             Memuat daftar bab...
           </div>
 
-          <div v-else-if="daftarYangTampil.length === 0" class="px-6 py-12 text-center text-wf-secondary text-[16px]">
-            Tidak ada bab yang sesuai dengan pencarian.
+          <div v-else-if="daftarYangTampil.length === 0 && !errorMsg" class="px-6 py-12 text-center text-wf-secondary text-[16px]">
+            {{
+              daftarBab.length === 0
+                ? 'Belum ada bab. Klik + Tambah Bab untuk membuat yang pertama.'
+                : 'Tidak ada bab yang sesuai dengan pencarian.'
+            }}
           </div>
 
           <div v-else>
@@ -269,12 +284,12 @@ function keteranganBab(bab) {
               </div>
 
               <div class="flex items-center gap-3">
-                <button
-                  type="button"
+                <span
+                  v-if="bab.status"
                   class="px-3 py-2 rounded-md border border-wf-brand-border bg-wf-brand-soft text-wf-brand font-semibold text-[15px]"
                 >
-                  Terbit
-                </button>
+                  {{ bab.status === 'terbit' ? 'Terbit' : 'Draf' }}
+                </span>
                 <button type="button" @click="bukaEditBab(bab)" class="text-wf-brand text-[15px] font-medium hover:underline">
                   Edit
                 </button>
@@ -351,6 +366,10 @@ function keteranganBab(bab) {
               />
             </label>
 
+            <p v-if="errorMsg" role="alert" class="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-[15px] text-red-700">
+              {{ errorMsg }}
+            </p>
+
             <div class="flex justify-end gap-3">
               <button
                 type="button"
@@ -362,9 +381,10 @@ function keteranganBab(bab) {
               <button
                 type="button"
                 @click="simpanBab"
-                class="rounded-md bg-wf-accent hover:bg-wf-accent-hover px-7 py-3 text-[15px] font-semibold text-white transition"
+                :disabled="menyimpan"
+                class="rounded-md bg-wf-accent hover:bg-wf-accent-hover px-7 py-3 text-[15px] font-semibold text-white transition disabled:opacity-60"
               >
-                {{ sedangMengedit ? 'Simpan Bab' : 'Simpan Bab' }}
+                {{ menyimpan ? 'Menyimpan...' : 'Simpan Bab' }}
               </button>
             </div>
           </div>
