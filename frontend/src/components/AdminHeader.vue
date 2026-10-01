@@ -13,6 +13,7 @@ const loggingOut = ref(false)
 // Rekap dan Panduan belum punya halaman, jadi tampil sebagai teks saja.
 const menu = [
   { label: 'Kuis', to: '/kuis' },
+  { label: 'Bab', to: '/bab' },
   { label: 'Rekap' },
   { label: 'Panduan' },
 ]

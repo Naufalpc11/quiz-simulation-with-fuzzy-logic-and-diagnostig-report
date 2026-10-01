@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import DashboardView from '../views/DashboardView.vue'
+import KelolaBabView from '../views/KelolaBabView.vue'
 import KelolaKuisView from '../views/KelolaKuisView.vue'
 import EditorKuisView from '../views/EditorKuisView.vue'
 import {
@@ -21,6 +22,7 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'login', component: LoginView, meta: { tamu: true } },
     { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { butuhLogin: true } },
+    { path: '/bab', name: 'kelola-bab', component: KelolaBabView, meta: khususAdmin },
     { path: '/kuis', name: 'kelola-kuis', component: KelolaKuisView, meta: khususAdmin },
     { path: '/kuis/tambah', name: 'tambah-kuis', component: EditorKuisView, meta: khususAdmin },
     { path: '/kuis/:id/soal', name: 'edit-soal', component: EditorKuisView, props: true, meta: khususAdmin },
