@@ -51,6 +51,7 @@ function formatTanggal(iso) {
 function keteranganKuis(kuis) {
   const bagian = [`Dibuat ${formatTanggal(kuis.tanggalDibuat)}`]
   if (kuis.jumlahSoal != null) bagian.push(`${kuis.jumlahSoal} soal`)
+  if (kuis.durasi) bagian.push(`${kuis.durasi} menit`)
   if (kuis.deskripsi) bagian.push(kuis.deskripsi)
   return bagian.join(' · ')
 }
@@ -207,7 +208,10 @@ async function handleHapus(kuis) {
         <p class="text-[19px] font-semibold text-wf-text">Belum ada kuis</p>
         <p class="mt-1 text-[15px]">
           <template v-if="daftarBab.length">Klik <b>+ TAMBAH KUIS</b> untuk membuat kuis pertama.</template>
-          <template v-else>Belum ada bab. Kuis harus masuk ke salah satu bab, jadi buat bab lebih dulu.</template>
+          <template v-else>
+            Belum ada bab. Kuis harus masuk ke salah satu bab, jadi
+            <RouterLink to="/bab" class="text-wf-brand underline">buat bab lebih dulu</RouterLink>.
+          </template>
         </p>
       </div>
 
@@ -252,7 +256,7 @@ async function handleHapus(kuis) {
     <!-- Dialog edit info kuis -->
     <div
       v-if="sedangDiedit"
-      class="fixed inset-0 z-20 bg-black/40 flex items-center justify-center p-4"
+      class="fixed inset-0 z-20 bg-black/40 overflow-y-auto p-4 flex"
       @click.self="sedangDiedit = null"
     >
       <form
@@ -260,7 +264,7 @@ async function handleHapus(kuis) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="judul-dialog-edit"
-        class="w-full max-w-lg bg-wf-card rounded-xl p-6 flex flex-col gap-4 shadow-xl"
+        class="m-auto w-full max-w-lg bg-wf-card rounded-xl p-6 flex flex-col gap-4 shadow-xl"
       >
         <h2 id="judul-dialog-edit" class="text-[22px] leading-[30px] font-semibold">Edit Kuis</h2>
 

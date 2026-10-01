@@ -36,7 +36,9 @@ const modeEdit = computed(() => Boolean(props.id))
 const metode = ref('manual')
 
 const daftarBab = ref([])
-const info = ref({ judul: '', idBab: null, deskripsi: '' })
+// durasi = lama pengerjaan seluruh kuis (menit). Default 30 sama dengan
+// default kolom Kuis.durasi di database.
+const info = ref({ judul: '', idBab: null, deskripsi: '', durasi: 30 })
 const daftarSoal = ref([soalKosong()])
 const indeksAktif = ref(0)
 
@@ -162,7 +164,12 @@ onMounted(async () => {
 
     if (modeEdit.value) {
       const kuis = await ambilKuis(props.id)
-      info.value = { judul: kuis.judul, idBab: kuis.idBab, deskripsi: kuis.deskripsi ?? '' }
+      info.value = {
+        judul: kuis.judul,
+        idBab: kuis.idBab,
+        deskripsi: kuis.deskripsi ?? '',
+        durasi: kuis.durasi ?? 30,
+      }
 
       try {
         const soalLama = await ambilSoalKuis(props.id)
@@ -204,6 +211,11 @@ async function simpan() {
     errorMsg.value = 'Pilih bab untuk kuis ini.'
     return
   }
+  // Aturan yang sama dengan createKuis/updateKuis di backend.
+  if (!Number.isInteger(info.value.durasi) || info.value.durasi <= 0) {
+    errorMsg.value = 'Durasi kuis harus bilangan bulat lebih dari 0 menit.'
+    return
+  }
   const indeksSalah = daftarSoal.value.findIndex((s) => masalahSoal(s))
   if (indeksSalah !== -1) {
     indeksAktif.value = indeksSalah
@@ -216,6 +228,7 @@ async function simpan() {
     judul: info.value.judul,
     idBab: info.value.idBab,
     deskripsi: info.value.deskripsi.trim() || null,
+    durasi: info.value.durasi,
   }
 
   try {
@@ -378,6 +391,16 @@ function hapusBerkas() {
                   <option v-for="bab in daftarBab" :key="bab.idBab" :value="bab.idBab">{{ bab.namaBab }}</option>
                 </select>
               </label>
+              <label class="flex flex-col gap-2 w-full sm:w-[180px]">
+                <span class="font-mono font-bold text-[16px] lg:text-[18px] leading-5 tracking-[1px] text-wf-muted">DURASI (MENIT)</span>
+                <input
+                  v-model.number="info.durasi"
+                  type="number"
+                  min="1"
+                  step="1"
+                  class="bg-wf-card border border-wf-border rounded-md p-4 text-[17px] leading-6 focus:outline-none focus:ring-2 focus:ring-wf-brand"
+                />
+              </label>
             </div>
           </div>
 
@@ -432,7 +455,7 @@ function hapusBerkas() {
               ></textarea>
 
               <label class="flex flex-col gap-2 w-full sm:w-[360px] mt-1">
-                <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">DURASI (DETIK)</span>
+                <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">TARGET WAKTU SOAL (DETIK)</span>
                 <input
                   v-model.number="soal.targetTime"
                   type="number"

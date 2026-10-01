@@ -1,3 +1,5 @@
+import { ROLE } from './roles'
+
 const API_URL = import.meta.env.VITE_API_URL
 
 if (!API_URL) {
@@ -147,9 +149,12 @@ export async function keluar() {
   }
 }
 
-// Admin (guru) langsung ke halaman kelola kuis, role lain ke dashboard.
+// Admin (guru) langsung ke kelola kuis, Super Admin ke kelola akun,
+// role lain ke dashboard.
+const HALAMAN_AWAL = { [ROLE.ADMIN]: '/kuis', [ROLE.SUPER_ADMIN]: '/akun' }
+
 export function halamanAwal(user = getUser()) {
-  return user?.role === 'admin' ? '/kuis' : '/dashboard'
+  return HALAMAN_AWAL[user?.role] ?? '/dashboard'
 }
 
 export async function fetchMe() {

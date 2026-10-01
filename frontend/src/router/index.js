@@ -4,6 +4,8 @@ import DashboardView from '../views/DashboardView.vue'
 import KelolaBabView from '../views/KelolaBabView.vue'
 import KelolaKuisView from '../views/KelolaKuisView.vue'
 import EditorKuisView from '../views/EditorKuisView.vue'
+import KelolaAkunView from '../views/KelolaAkunView.vue'
+import { ROLE } from '../services/roles'
 import {
   isLoggedIn,
   fetchMe,
@@ -14,8 +16,10 @@ import {
   SessionExpiredError,
 } from '../services/auth'
 
-// Endpoint tulis Bab/Kuis di backend hanya menerima role 'admin' (guru).
-const khususAdmin = { butuhLogin: true, role: 'admin' }
+// Endpoint tulis Bab/Kuis di backend hanya menerima role 'Admin' (guru).
+const khususAdmin = { butuhLogin: true, role: 'Admin' }
+// /api/account hanya menerima Super Admin.
+const khususSuperAdmin = { butuhLogin: true, role: ROLE.SUPER_ADMIN }
 
 const router = createRouter({
   history: createWebHistory(),
@@ -26,6 +30,7 @@ const router = createRouter({
     { path: '/kuis', name: 'kelola-kuis', component: KelolaKuisView, meta: khususAdmin },
     { path: '/kuis/tambah', name: 'tambah-kuis', component: EditorKuisView, meta: khususAdmin },
     { path: '/kuis/:id/soal', name: 'edit-soal', component: EditorKuisView, props: true, meta: khususAdmin },
+    { path: '/akun', name: 'kelola-akun', component: KelolaAkunView, meta: khususSuperAdmin },
     // Alamat ngawur diarahkan ke login, bukan halaman kosong.
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
