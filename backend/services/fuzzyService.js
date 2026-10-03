@@ -154,16 +154,17 @@ export function evaluateQuiz(answersArray, totalDurationSeconds = null, options 
   };
 
   const detailItems = answersArray.map((ans, idx) => {
-    const isCorrect = ans.isCorrect !== undefined ? ans.isCorrect : ans.benar;
-    const responseTime = ans.responseTime !== undefined
-      ? ans.responseTime
-      : (ans.waktu !== undefined ? ans.waktu : ans.waktuPengerjaan);
-    const difficulty = ans.difficulty !== undefined
-      ? ans.difficulty
-      : (ans.kesulitan !== undefined ? ans.kesulitan : ans.tingkatKesulitan);
-    const targetTime = ans.targetTime !== undefined
-      ? ans.targetTime
-      : (ans.targetWaktu !== undefined ? ans.targetWaktu : 60);
+    const item = ans || {};
+    const isCorrect = item.isCorrect !== undefined ? item.isCorrect : item.benar;
+    const responseTime = item.responseTime !== undefined
+      ? item.responseTime
+      : (item.waktu !== undefined ? item.waktu : item.waktuPengerjaan);
+    const difficulty = item.difficulty !== undefined
+      ? item.difficulty
+      : (item.kesulitan !== undefined ? item.kesulitan : item.tingkatKesulitan);
+    const targetTime = item.targetTime !== undefined
+      ? item.targetTime
+      : (item.targetWaktu !== undefined ? item.targetWaktu : 60);
 
     const evaluated = evaluateItem({
       isCorrect,
@@ -189,7 +190,7 @@ export function evaluateQuiz(answersArray, totalDurationSeconds = null, options 
 
     return {
       nomorSoal: idx + 1,
-      soalId: ans.soalId || ans.id || null,
+      soalId: item.soalId || item.id || null,
       ...evaluated,
     };
   });
