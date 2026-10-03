@@ -278,6 +278,10 @@ export const resetPasswordPage = (req, res) => {
   res.sendFile(path.join(__dirname, '../templates/reset-password.html'));
 };
 
+export const resetPasswordBackground = (req, res) => {
+  res.sendFile(path.join(__dirname, '../templates/background-itk.jpg.jpeg'));
+};
+
 // JANGAN DI OTAK ATIK!! INI ADALAH ENDPOINT PAKETAN UNTUK RESET PASSWORD
 export const resetPassword = async (req, res) => {
   try {
