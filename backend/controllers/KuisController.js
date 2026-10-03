@@ -2,7 +2,7 @@
 import { supabaseAdmin } from '../config/db.js';
 import { successResponse, errorResponse } from '../models/apiResponse.js';
 
-const KUIS_COLUMNS = 'idKuis, idUser, idBab, judul, deskripsi, tanggalDibuat';
+const KUIS_COLUMNS = 'idKuis, idUser, idBab, judul, deskripsi, durasi, tanggalDibuat';
 
 // Menampilkan semua kuis — bisa diakses semua role yang sudah login.
 // Bisa difilter per bab lewat query ?idBab=... (dipakai mahasiswa: pilih bab dulu, baru lihat kuis-nya)
@@ -10,9 +10,10 @@ export const getAllKuis = async (req, res) => {
   try {
     const { idBab } = req.query;
 
+    // Soal(count) = jumlah soal per kuis, ditampilkan frontend di daftar kuis ("· 10 soal").
     let query = supabaseAdmin
       .from('Kuis')
-      .select(KUIS_COLUMNS)
+      .select(`${KUIS_COLUMNS}, Soal(count)`)
       .order('tanggalDibuat', { ascending: false });
 
     if (idBab) {
@@ -25,8 +26,10 @@ export const getAllKuis = async (req, res) => {
       return res.status(500).json(errorResponse({ message: error.message }));
     }
 
+    const daftar = data.map(({ Soal, ...kuis }) => ({ ...kuis, jumlahSoal: Soal[0]?.count ?? 0 }));
+
     return res.json(
-      successResponse({ message: 'Berhasil mengambil daftar kuis.', data }),
+      successResponse({ message: 'Berhasil mengambil daftar kuis.', data: daftar }),
     );
   } catch (error) {
     return res.status(500).json(errorResponse({ message: error.message || 'Gagal mengambil daftar kuis.' }));
@@ -56,20 +59,31 @@ export const getKuisById = async (req, res) => {
 // Hanya admin (guru) yang bisa membuat kuis — pemiliknya adalah guru yang sedang login
 export const createKuis = async (req, res) => {
   try {
-    const { idBab, judul, deskripsi } = req.body;
+    const { idBab, judul, deskripsi, durasi } = req.body;
 
     if (!idBab || !judul || !judul.trim()) {
       return res.status(400).json(errorResponse({ message: 'idBab dan judul wajib diisi.' }));
     }
 
+    // durasi opsional: editor kuis di frontend belum punya isiannya, jadi kalau
+    // tidak dikirim database memakai default kolomnya (30 menit).
+    const payload = {
+      idUser: req.currentUser.id,
+      idBab,
+      judul: judul.trim(),
+      deskripsi: deskripsi ?? null,
+    };
+    if (durasi !== undefined && durasi !== null) {
+      const durasiInt = Number(durasi);
+      if (!Number.isInteger(durasiInt) || durasiInt <= 0) {
+        return res.status(400).json(errorResponse({ message: 'durasi harus berupa bilangan bulat positif.' }));
+      }
+      payload.durasi = durasiInt;
+    }
+
     const { data, error } = await supabaseAdmin
       .from('Kuis')
-      .insert({
-        idUser: req.currentUser.id,
-        idBab,
-        judul: judul.trim(),
-        deskripsi: deskripsi ?? null,
-      })
+      .insert(payload)
       .select(KUIS_COLUMNS)
       .single();
 
@@ -91,9 +105,9 @@ export const createKuis = async (req, res) => {
 export const updateKuis = async (req, res) => {
   try {
     const { id } = req.params;
-    const { idBab, judul, deskripsi } = req.body;
+    const { idBab, judul, deskripsi, durasi } = req.body;
 
-    if (idBab === undefined && judul === undefined && deskripsi === undefined) {
+    if (idBab === undefined && judul === undefined && deskripsi === undefined && durasi === undefined) {
       return res.status(400).json(errorResponse({ message: 'Tidak ada data yang diubah.' }));
     }
 
@@ -123,6 +137,13 @@ export const updateKuis = async (req, res) => {
     }
     if (deskripsi !== undefined) updatePayload.deskripsi = deskripsi;
     if (idBab !== undefined) updatePayload.idBab = idBab;
+    if (durasi !== undefined) {
+      const durasiInt = Number(durasi);
+      if (!Number.isInteger(durasiInt) || durasiInt <= 0) {
+        return res.status(400).json(errorResponse({ message: 'durasi harus berupa bilangan bulat positif.' }));
+      }
+      updatePayload.durasi = durasiInt;
+    }
 
     const { data, error } = await supabaseAdmin
       .from('Kuis')

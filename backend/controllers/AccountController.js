@@ -1,8 +1,9 @@
 // controllers/AccountController.js
 import { supabaseAdmin } from '../config/db.js';
 import { successResponse, errorResponse } from '../models/apiResponse.js';
+import { ROLE } from '../config/roles.js';
 
-const VALID_ROLES = ['admin', 'pengguna'];
+const VALID_ROLES = [ROLE.ADMIN, ROLE.MAHASISWA];
 
 // Awal Untuk Superadmin — endpoint ini hanya bisa diakses oleh superadmin
 // Menampilkan semua user (role admin & user) — gabungan dari auth.users (id, email) dan public.user (nama, role)
@@ -165,7 +166,7 @@ export const deleteAccount = async (req, res) => {
     }
 
     // Cegah penghapusan akun superadmin lain lewat endpoint ini
-    if (profile.role === 'superadmin') {
+    if (profile.role === ROLE.SUPER_ADMIN) {
       return res.status(403).json(errorResponse({ message: 'Akun superadmin tidak bisa dihapus lewat endpoint ini.' }));
     }
 
