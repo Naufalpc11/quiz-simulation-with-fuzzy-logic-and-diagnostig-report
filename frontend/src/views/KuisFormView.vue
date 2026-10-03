@@ -5,14 +5,14 @@ import AdminHeader from '../components/AdminHeader.vue'
 import { setNotice, SessionExpiredError } from '../services/auth'
 import { ambilDaftarBab, ambilKuis, ubahKuis } from '../services/kuis'
 
-// Figma "Edit kuis": ubah info kuis (bab, nama, durasi). Soal-soalnya diubah
+// Figma "Edit kuis": ubah info kuis (nama, bab, deskripsi). Durasi dan soal diubah
 // lewat halaman Edit Soal (EditorKuisView).
 const props = defineProps({ id: { type: String, required: true } })
 
 const router = useRouter()
 
 const daftarBab = ref([])
-const form = ref({ judul: '', idBab: null, durasi: 30, deskripsi: '' })
+const form = ref({ judul: '', idBab: null, deskripsi: '' })
 const memuat = ref(true)
 const gagalMuat = ref(false)
 const menyimpan = ref(false)
@@ -34,7 +34,7 @@ onMounted(async () => {
   try {
     const [bab, kuis] = await Promise.all([ambilDaftarBab(), ambilKuis(props.id)])
     daftarBab.value = bab
-    form.value = { judul: kuis.judul, idBab: kuis.idBab, durasi: kuis.durasi ?? 30, deskripsi: kuis.deskripsi ?? '' }
+    form.value = { judul: kuis.judul, idBab: kuis.idBab, deskripsi: kuis.deskripsi ?? '' }
     idBabAsal.value = kuis.idBab
   } catch (err) {
     gagalMuat.value = true
@@ -51,18 +51,14 @@ async function simpan() {
     errorMsg.value = 'Nama kuis wajib diisi.'
     return
   }
-  // Aturan yang sama dengan createKuis/updateKuis di backend.
-  if (!Number.isInteger(f.durasi) || f.durasi <= 0) {
-    errorMsg.value = 'Durasi harus bilangan bulat lebih dari 0 menit.'
-    return
-  }
 
   menyimpan.value = true
   try {
+    // Durasi sengaja tidak dikirim: diubah lewat halaman Edit Soal. updateKuis
+    // hanya mengubah field yang dikirim, jadi durasi yang ada tetap utuh.
     const hasil = await ubahKuis(props.id, {
       judul: f.judul.trim(),
       idBab: f.idBab,
-      durasi: f.durasi,
       deskripsi: f.deskripsi.trim() || null,
     })
     setNotice(`Kuis "${hasil.judul}" berhasil diperbarui.`)
@@ -91,7 +87,7 @@ async function simpan() {
         </p>
         <h1 class="text-[28px] leading-9 font-semibold">Edit Kuis</h1>
         <p class="text-[17px] leading-6 text-wf-secondary">
-          Ubah nama, bab, dan durasi kuis. Untuk mengubah soal, pakai tombol Edit Soal di daftar kuis.
+          Ubah nama dan bab kuis. Untuk mengubah durasi dan soal, pakai tombol Edit Soal di daftar kuis.
         </p>
       </div>
 
@@ -129,17 +125,6 @@ async function simpan() {
           </label>
         </div>
 
-        <label class="flex flex-col gap-2 w-full sm:w-[360px]">
-          <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">DURASI (MENIT)</span>
-          <input
-            v-model.number="form.durasi"
-            type="number"
-            min="1"
-            step="1"
-            class="bg-wf-card border border-wf-border rounded-md p-4 text-[17px] leading-6 focus:outline-none focus:ring-2 focus:ring-wf-brand"
-          />
-          <span class="text-[13px] text-wf-muted">Lama pengerjaan seluruh kuis.</span>
-        </label>
 
         <!-- Tidak ada di Figma, tapi sebelumnya bisa diubah lewat pop-up edit. -->
         <label class="flex flex-col gap-2">
