@@ -107,7 +107,7 @@ async function handleHapus(bab) {
       <div class="flex flex-col gap-2">
         <h1 class="text-[28px] leading-9 font-semibold">Kelola Bab</h1>
         <p class="text-[17px] lg:text-[19px] leading-[26px] text-wf-secondary">
-          Tambah, ubah, dan hapus bab. Setiap kuis masuk ke salah satu bab, dan bab tampil sesuai nomornya.
+          Tambah, ubah, dan hapus bab. Klik nama bab untuk mengelola kuis dan soal di dalamnya.
         </p>
       </div>
 
@@ -185,7 +185,11 @@ async function handleHapus(bab) {
           class="bg-wf-card border border-wf-border-subtle rounded-md px-6 py-5 flex flex-wrap items-center gap-x-6 gap-y-3"
         >
           <div class="flex-1 min-w-[240px] flex flex-col gap-2">
-            <h3 class="text-[19px] leading-[26px] font-semibold">{{ bab.namaBab }}</h3>
+            <h3 class="text-[19px] leading-[26px] font-semibold">
+              <RouterLink :to="`/bab/${bab.idBab}/kuis`" class="text-wf-brand hover:underline">
+                {{ bab.namaBab }}
+              </RouterLink>
+            </h3>
             <p v-if="bab.deskripsi" class="text-[15px] leading-6 text-wf-secondary">{{ bab.deskripsi }}</p>
             <p class="font-mono text-[14px] lg:text-[15px] leading-5 tracking-[1px] text-wf-muted">
               {{ keteranganBab(bab) }}

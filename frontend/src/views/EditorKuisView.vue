@@ -71,6 +71,12 @@ const namaBabAktif = computed(
   () => daftarBab.value.find((b) => b.idBab === info.value.idBab)?.namaBab ?? '',
 )
 
+// Bab asal halaman ini (Kelola Kuis bab itu). Dipakai breadcrumb dan tombol
+// Batal supaya kembali ke tempat admin datang.
+const idBabAsal = ref(null)
+const namaBabAsal = computed(() => daftarBab.value.find((b) => b.idBab === idBabAsal.value)?.namaBab ?? '')
+const tautanKembali = computed(() => (idBabAsal.value ? `/bab/${idBabAsal.value}/kuis` : '/bab'))
+
 // ── Validasi ──
 
 function masalahSoal(s) {
@@ -179,10 +185,12 @@ onMounted(async () => {
         if (!(err instanceof EndpointBelumAdaError)) throw err
         infoMsg.value = 'Soal lama belum bisa dimuat karena endpoint soal belum tersedia di backend.'
       }
+      idBabAsal.value = kuis.idBab
     } else {
-      // ?idBab=... dari link lain dipilih lebih dulu, kalau tidak ada pakai bab pertama.
+      // ?idBab=... dari Kelola Kuis bab itu dipilih lebih dulu, kalau tidak ada pakai bab pertama.
       const dariQuery = daftarBab.value.find((b) => String(b.idBab) === route.query.idBab)
       info.value.idBab = (dariQuery ?? daftarBab.value[0])?.idBab ?? null
+      idBabAsal.value = dariQuery?.idBab ?? null
     }
   } catch (err) {
     tanganiError(err)
@@ -244,7 +252,8 @@ async function simpan() {
 
     bersih.value = true
     setNotice(`Kuis "${dataKuis.judul}" berhasil disimpan dengan ${daftarSoal.value.length} soal.`)
-    router.push('/kuis')
+    // Ke Kelola Kuis bab tempat kuis ini disimpan (bisa beda kalau bab-nya diganti).
+    router.push(`/bab/${dataKuis.idBab}/kuis`)
   } catch (err) {
     if (err instanceof EndpointBelumAdaError) {
       errorMsg.value =
@@ -259,7 +268,7 @@ async function simpan() {
 }
 
 function batal() {
-  router.push('/kuis')
+  router.push(tautanKembali.value)
 }
 
 // ── Tab Dokumen ──
@@ -318,7 +327,10 @@ function hapusBerkas() {
       <!-- Judul halaman -->
       <div class="flex flex-col gap-2">
         <p class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">
-          <RouterLink to="/kuis" class="hover:underline">← Kuis</RouterLink>
+          <RouterLink to="/bab" class="hover:underline">← Bab</RouterLink>
+          <template v-if="namaBabAsal">
+            / <RouterLink :to="tautanKembali" class="hover:underline uppercase">{{ namaBabAsal }}</RouterLink>
+          </template>
           / {{ modeEdit ? 'EDIT SOAL' : 'TAMBAH KUIS' }}
         </p>
         <h1 class="text-[28px] leading-9 font-semibold">{{ modeEdit ? 'Edit Soal' : 'Tambah Kuis' }}</h1>

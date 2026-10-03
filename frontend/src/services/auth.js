@@ -149,9 +149,9 @@ export async function keluar() {
   }
 }
 
-// Admin (guru) langsung ke kelola kuis, Super Admin ke kelola akun,
-// role lain ke dashboard.
-const HALAMAN_AWAL = { [ROLE.ADMIN]: '/kuis', [ROLE.SUPER_ADMIN]: '/akun' }
+// Admin (guru) langsung ke Kelola Bab (pintu masuk menu Kuis), Super Admin ke
+// kelola akun, role lain ke dashboard.
+const HALAMAN_AWAL = { [ROLE.ADMIN]: '/bab', [ROLE.SUPER_ADMIN]: '/akun' }
 
 export function halamanAwal(user = getUser()) {
   return HALAMAN_AWAL[user?.role] ?? '/dashboard'

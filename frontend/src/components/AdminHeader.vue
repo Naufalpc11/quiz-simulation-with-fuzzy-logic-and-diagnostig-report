@@ -12,19 +12,19 @@ const user = getUser()
 const loggingOut = ref(false)
 
 // Super Admin hanya mengelola akun; endpoint Kuis/Bab menolak role itu.
-// Rekap dan Panduan belum punya halaman, jadi tampil sebagai teks saja.
+// Navbar admin sesuai wireframe: Kuis dan Rekap. "Kuis" membuka Kelola Bab
+// dan tetap aktif di seluruh alur bab → kuis → soal.
+// Rekap belum punya halaman, jadi tampil sebagai teks saja.
 const superAdmin = user?.role === ROLE.SUPER_ADMIN
 const menu = superAdmin
-  ? [{ label: 'Akun', to: '/akun' }]
+  ? [{ label: 'Akun', to: '/akun', aktifDi: ['/akun'] }]
   : [
-      { label: 'Kuis', to: '/kuis' },
-      { label: 'Bab', to: '/bab' },
+      { label: 'Kuis', to: '/bab', aktifDi: ['/bab', '/kuis'] },
       { label: 'Rekap' },
-      { label: 'Panduan' },
     ]
 
 function aktif(item) {
-  return item.to && route.path.startsWith(item.to)
+  return item.aktifDi?.some((awalan) => route.path.startsWith(awalan))
 }
 
 async function handleLogout() {

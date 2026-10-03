@@ -20,6 +20,11 @@ const errorMsg = ref('')
 
 const namaBab = computed(() => daftarBab.value.find((b) => b.idBab === form.value.idBab)?.namaBab ?? '')
 
+// Bab asal kuis sebelum diubah: tujuan breadcrumb dan tombol Batal.
+const idBabAsal = ref(null)
+const namaBabAsal = computed(() => daftarBab.value.find((b) => b.idBab === idBabAsal.value)?.namaBab ?? '')
+const tautanKembali = computed(() => (idBabAsal.value ? `/bab/${idBabAsal.value}/kuis` : '/bab'))
+
 function tanganiError(err) {
   if (err instanceof SessionExpiredError) return router.push('/')
   errorMsg.value = err.message
@@ -30,6 +35,7 @@ onMounted(async () => {
     const [bab, kuis] = await Promise.all([ambilDaftarBab(), ambilKuis(props.id)])
     daftarBab.value = bab
     form.value = { judul: kuis.judul, idBab: kuis.idBab, durasi: kuis.durasi ?? 30, deskripsi: kuis.deskripsi ?? '' }
+    idBabAsal.value = kuis.idBab
   } catch (err) {
     gagalMuat.value = true
     tanganiError(err)
@@ -60,7 +66,8 @@ async function simpan() {
       deskripsi: f.deskripsi.trim() || null,
     })
     setNotice(`Kuis "${hasil.judul}" berhasil diperbarui.`)
-    router.push('/kuis')
+    // Ke Kelola Kuis bab tujuan; kalau kuis dipindah bab, ikut ke bab baru.
+    router.push(`/bab/${f.idBab}/kuis`)
   } catch (err) {
     tanganiError(err)
   } finally {
@@ -76,7 +83,11 @@ async function simpan() {
     <main class="px-4 sm:px-10 lg:px-20 pt-10 pb-14 flex flex-col gap-6">
       <div class="flex flex-col gap-2">
         <p class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">
-          <RouterLink to="/kuis" class="hover:underline">← Kuis</RouterLink> / EDIT KUIS
+          <RouterLink to="/bab" class="hover:underline">← Bab</RouterLink>
+          <template v-if="namaBabAsal">
+            / <RouterLink :to="tautanKembali" class="hover:underline uppercase">{{ namaBabAsal }}</RouterLink>
+          </template>
+          / EDIT KUIS
         </p>
         <h1 class="text-[28px] leading-9 font-semibold">Edit Kuis</h1>
         <p class="text-[17px] leading-6 text-wf-secondary">
@@ -87,7 +98,7 @@ async function simpan() {
       <p v-if="memuat" class="text-wf-muted">Memuat data...</p>
 
       <p v-else-if="gagalMuat" role="alert" class="rounded-md bg-red-50 border border-wf-no-border px-4 py-3 text-[15px] text-wf-no-text">
-        {{ errorMsg }} <RouterLink to="/kuis" class="underline font-semibold">Kembali ke daftar kuis</RouterLink>
+        {{ errorMsg }} <RouterLink to="/bab" class="underline font-semibold">Kembali ke daftar bab</RouterLink>
       </p>
 
       <form
@@ -146,7 +157,7 @@ async function simpan() {
 
         <div class="flex flex-wrap gap-4">
           <RouterLink
-            to="/kuis"
+            :to="tautanKembali"
             class="rounded-xl bg-wf-no border border-wf-no-border px-6 py-4 text-[20px] lg:text-[22px] leading-7 font-semibold tracking-[0.2px] text-white"
           >
             BATAL

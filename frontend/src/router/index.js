@@ -31,7 +31,10 @@ const router = createRouter({
     { path: '/bab', name: 'kelola-bab', component: KelolaBabView, meta: khususAdmin },
     { path: '/bab/tambah', name: 'tambah-bab', component: BabFormView, meta: khususAdmin },
     { path: '/bab/:id/edit', name: 'edit-bab', component: BabFormView, props: true, meta: khususAdmin },
-    { path: '/kuis', name: 'kelola-kuis', component: KelolaKuisView, meta: khususAdmin },
+    // Kelola Kuis selalu untuk satu bab (dibuka dengan klik nama bab).
+    { path: '/bab/:id/kuis', name: 'kelola-kuis', component: KelolaKuisView, props: true, meta: khususAdmin },
+    // Alamat lama daftar semua kuis: diarahkan ke Kelola Bab supaya link lama tidak rusak.
+    { path: '/kuis', redirect: '/bab' },
     { path: '/kuis/tambah', name: 'tambah-kuis', component: EditorKuisView, meta: khususAdmin },
     { path: '/kuis/:id/edit', name: 'edit-kuis', component: KuisFormView, props: true, meta: khususAdmin },
     { path: '/kuis/:id/soal', name: 'edit-soal', component: EditorKuisView, props: true, meta: khususAdmin },

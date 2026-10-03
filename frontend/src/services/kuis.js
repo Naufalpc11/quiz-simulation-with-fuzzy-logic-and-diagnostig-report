@@ -30,8 +30,11 @@ export { ambilDaftarBab } from './bab'
 
 // ── Kuis ──
 
-export async function ambilDaftarKuis() {
-  return (await panggil('/kuis', { method: 'GET' })).data
+// Tanpa idBab: semua kuis. Dengan idBab: hanya kuis di bab itu (filter
+// ?idBab= sudah didukung getAllKuis di backend).
+export async function ambilDaftarKuis(idBab) {
+  const query = idBab ? `?idBab=${encodeURIComponent(idBab)}` : ''
+  return (await panggil(`/kuis${query}`, { method: 'GET' })).data
 }
 
 export async function ambilKuis(idKuis) {
