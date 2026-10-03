@@ -4,6 +4,10 @@ export async function ambilDaftarBab() {
   return (await kirimTerautentikasi('/bab', { method: 'GET' })).data
 }
 
+export async function ambilBab(idBab) {
+  return (await kirimTerautentikasi(`/bab/${idBab}`, { method: 'GET' })).data
+}
+
 export async function buatBab(data) {
   return (await kirimTerautentikasi('/bab', { body: data })).data
 }

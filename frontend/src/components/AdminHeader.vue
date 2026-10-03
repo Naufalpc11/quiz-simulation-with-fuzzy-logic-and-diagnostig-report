@@ -38,11 +38,11 @@ async function handleLogout() {
   <header
     class="bg-wf-card border-b border-wf-border px-4 sm:px-10 lg:px-20 py-4 lg:py-6 flex flex-wrap items-center justify-between gap-4"
   >
-    <div class="flex items-center gap-6 lg:gap-10">
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-2 lg:gap-10">
       <RouterLink :to="halamanAwal(user)" class="block h-10 w-[125px] shrink-0">
         <img :src="logoImage" alt="eSikap" class="size-full object-contain" />
       </RouterLink>
-      <nav class="flex items-center gap-6 lg:gap-10 text-[17px] lg:text-[19px] leading-[26px]">
+      <nav class="flex flex-wrap items-center gap-x-5 gap-y-1 sm:gap-x-6 lg:gap-10 text-[17px] lg:text-[19px] leading-[26px]">
         <template v-for="item in menu" :key="item.label">
           <RouterLink
             v-if="item.to"

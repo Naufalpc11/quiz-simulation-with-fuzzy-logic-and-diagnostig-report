@@ -212,14 +212,14 @@ async function handleHapus(akun) {
             </p>
           </div>
 
-          <div class="flex items-center gap-6 text-[17px] leading-6">
+          <div class="flex flex-wrap items-center gap-3 text-[17px] leading-6">
             <span
               class="px-2 py-1 rounded-md border font-semibold tracking-[0.5px]"
               :class="akun.role === ROLE.ADMIN ? 'bg-wf-accent-light border-wf-accent-hover' : 'bg-wf-brand-soft border-wf-brand-border'"
             >
               {{ akun.role }}
             </span>
-            <button type="button" @click="handleHapus(akun)" class="text-wf-no-text hover:underline">Hapus</button>
+            <button type="button" @click="handleHapus(akun)" class="tombol-aksi-bahaya">Hapus</button>
           </div>
         </article>
       </section>

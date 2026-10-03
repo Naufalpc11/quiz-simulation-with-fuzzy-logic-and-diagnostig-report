@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminHeader from '../components/AdminHeader.vue'
 import { takeNotice, SessionExpiredError } from '../services/auth'
-import { ambilDaftarBab, ambilDaftarKuis, ubahKuis, hapusKuis } from '../services/kuis'
+import { ambilDaftarBab, ambilDaftarKuis, hapusKuis } from '../services/kuis'
 
 const router = useRouter()
 
@@ -83,47 +83,7 @@ onMounted(() => {
   muat()
 })
 
-// ── Edit info kuis (judul, bab, deskripsi) ──
-
-const sedangDiedit = ref(null)
-const menyimpanEdit = ref(false)
-const errorEdit = ref('')
-
-function bukaEdit(kuis) {
-  errorEdit.value = ''
-  sedangDiedit.value = {
-    idKuis: kuis.idKuis,
-    judul: kuis.judul,
-    idBab: kuis.idBab,
-    deskripsi: kuis.deskripsi ?? '',
-  }
-}
-
-async function simpanEdit() {
-  const data = sedangDiedit.value
-  if (!data.judul.trim()) {
-    errorEdit.value = 'Nama kuis wajib diisi.'
-    return
-  }
-
-  menyimpanEdit.value = true
-  errorEdit.value = ''
-  try {
-    const hasil = await ubahKuis(data.idKuis, {
-      judul: data.judul,
-      idBab: data.idBab,
-      deskripsi: data.deskripsi.trim() || null,
-    })
-    daftarKuis.value = daftarKuis.value.map((k) => (k.idKuis === hasil.idKuis ? { ...k, ...hasil } : k))
-    infoMsg.value = 'Kuis berhasil diperbarui.'
-    sedangDiedit.value = null
-  } catch (err) {
-    if (err instanceof SessionExpiredError) return router.push('/')
-    errorEdit.value = err.message
-  } finally {
-    menyimpanEdit.value = false
-  }
-}
+// Edit info kuis ada di halaman sendiri (KuisFormView, Figma "Edit kuis").
 
 // ── Hapus ──
 
@@ -237,84 +197,20 @@ async function handleHapus(kuis) {
             </p>
           </div>
 
-          <div class="flex items-center gap-6 text-[17px] leading-6">
+          <div class="flex flex-wrap items-center gap-3">
             <span
               v-if="kuis.status"
-              class="px-2 py-1 rounded-md border font-semibold tracking-[0.5px]"
+              class="px-2 py-1 rounded-md border text-[17px] font-semibold tracking-[0.5px]"
               :class="kuis.status === 'terbit' ? 'bg-wf-accent-light border-wf-accent-hover' : 'bg-wf-brand-soft border-wf-brand-border'"
             >
               {{ kuis.status === 'terbit' ? 'Terbit' : 'Draf' }}
             </span>
-            <RouterLink :to="`/kuis/${kuis.idKuis}/soal`" class="text-wf-brand hover:underline">Edit Soal</RouterLink>
-            <button type="button" @click="bukaEdit(kuis)" class="text-wf-brand hover:underline">Edit</button>
-            <button type="button" @click="handleHapus(kuis)" class="text-wf-no-text hover:underline">Hapus</button>
+            <RouterLink :to="`/kuis/${kuis.idKuis}/soal`" class="tombol-aksi">Edit Soal</RouterLink>
+            <RouterLink :to="`/kuis/${kuis.idKuis}/edit`" class="tombol-aksi">Edit</RouterLink>
+            <button type="button" @click="handleHapus(kuis)" class="tombol-aksi-bahaya">Hapus</button>
           </div>
         </article>
       </section>
     </main>
-
-    <!-- Dialog edit info kuis -->
-    <div
-      v-if="sedangDiedit"
-      class="fixed inset-0 z-20 bg-black/40 overflow-y-auto p-4 flex"
-      @click.self="sedangDiedit = null"
-    >
-      <form
-        @submit.prevent="simpanEdit"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="judul-dialog-edit"
-        class="m-auto w-full max-w-lg bg-wf-card rounded-xl p-6 flex flex-col gap-4 shadow-xl"
-      >
-        <h2 id="judul-dialog-edit" class="text-[22px] leading-[30px] font-semibold">Edit Kuis</h2>
-
-        <label class="flex flex-col gap-2">
-          <span class="font-mono text-[15px] tracking-[1px] text-wf-secondary">NAMA KUIS</span>
-          <input
-            v-model="sedangDiedit.judul"
-            type="text"
-            class="border border-wf-border rounded-md px-4 py-3 text-[17px] focus:outline-none focus:ring-2 focus:ring-wf-brand"
-          />
-        </label>
-
-        <label class="flex flex-col gap-2">
-          <span class="font-mono text-[15px] tracking-[1px] text-wf-secondary">BAB</span>
-          <select
-            v-model="sedangDiedit.idBab"
-            class="border border-wf-border rounded-md px-4 py-3 text-[17px] bg-wf-card focus:outline-none focus:ring-2 focus:ring-wf-brand"
-          >
-            <option v-for="bab in daftarBab" :key="bab.idBab" :value="bab.idBab">{{ bab.namaBab }}</option>
-          </select>
-        </label>
-
-        <label class="flex flex-col gap-2">
-          <span class="font-mono text-[15px] tracking-[1px] text-wf-secondary">DESKRIPSI (OPSIONAL)</span>
-          <textarea
-            v-model="sedangDiedit.deskripsi"
-            rows="3"
-            class="border border-wf-border rounded-md px-4 py-3 text-[17px] focus:outline-none focus:ring-2 focus:ring-wf-brand"
-          ></textarea>
-        </label>
-
-        <p v-if="errorEdit" role="alert" class="text-[15px] text-wf-no">{{ errorEdit }}</p>
-
-        <div class="flex justify-end gap-3">
-          <button
-            type="button"
-            @click="sedangDiedit = null"
-            class="rounded-xl border border-wf-brand-border px-5 py-3 font-semibold text-wf-brand"
-          >
-            BATAL
-          </button>
-          <button
-            type="submit"
-            :disabled="menyimpanEdit"
-            class="rounded-xl bg-wf-accent-hover px-5 py-3 font-semibold text-white disabled:opacity-60"
-          >
-            {{ menyimpanEdit ? 'MENYIMPAN...' : 'SIMPAN' }}
-          </button>
-        </div>
-      </form>
-    </div>
   </div>
 </template>
