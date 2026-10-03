@@ -58,6 +58,8 @@ function soalKosong() {
     opsi: ['', '', '', '', ''],
     kunci: null,
     difficulty: 'Sedang',
+    // Tidak diisi lewat editor; 60 detik sama dengan default kolom Soal.targetTime.
+    // Soal lama tetap membawa nilainya sendiri dari backend.
     targetTime: 60,
     pembahasan: '',
     ringkasan: '',
@@ -76,7 +78,6 @@ function masalahSoal(s) {
   if (s.opsi.length < MIN_OPSI) return `minimal ${MIN_OPSI} opsi jawaban`
   if (s.opsi.some((o) => !o.trim())) return 'ada opsi jawaban yang kosong'
   if (s.kunci === null) return 'jawaban benar belum dipilih'
-  if (!(Number(s.targetTime) > 0)) return 'durasi harus lebih dari 0 detik'
   return null
 }
 
@@ -391,16 +392,6 @@ function hapusBerkas() {
                   <option v-for="bab in daftarBab" :key="bab.idBab" :value="bab.idBab">{{ bab.namaBab }}</option>
                 </select>
               </label>
-              <label class="flex flex-col gap-2 w-full sm:w-[180px]">
-                <span class="font-mono font-bold text-[16px] lg:text-[18px] leading-5 tracking-[1px] text-wf-muted">DURASI (MENIT)</span>
-                <input
-                  v-model.number="info.durasi"
-                  type="number"
-                  min="1"
-                  step="1"
-                  class="bg-wf-card border border-wf-border rounded-md p-4 text-[17px] leading-6 focus:outline-none focus:ring-2 focus:ring-wf-brand"
-                />
-              </label>
             </div>
           </div>
 
@@ -454,15 +445,18 @@ function hapusBerkas() {
                 class="border border-wf-border-subtle rounded-md p-4 text-[17px] lg:text-[19px] leading-[26px] placeholder:text-wf-muted focus:outline-none focus:ring-2 focus:ring-wf-brand"
               ></textarea>
 
+              <!-- Posisi mengikuti Figma, tapi nilainya milik kuis (Kuis.durasi),
+                   jadi tetap sama saat berpindah soal. -->
               <label class="flex flex-col gap-2 w-full sm:w-[360px] mt-1">
-                <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">TARGET WAKTU SOAL (DETIK)</span>
+                <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">DURASI (MENIT)</span>
                 <input
-                  v-model.number="soal.targetTime"
+                  v-model.number="info.durasi"
                   type="number"
                   min="1"
+                  step="1"
                   class="bg-wf-card border border-wf-border rounded-md p-4 text-[17px] leading-6 focus:outline-none focus:ring-2 focus:ring-wf-brand"
                 />
-                <span class="text-[13px] text-wf-muted">Target waktu mengerjakan soal ini, dipakai penilaian fuzzy.</span>
+                <span class="text-[13px] text-wf-muted">Lama pengerjaan seluruh kuis, berlaku untuk semua soal.</span>
               </label>
             </div>
 
@@ -493,7 +487,7 @@ function hapusBerkas() {
                 type="button"
                 @click="tambahOpsi"
                 :disabled="soal.opsi.length >= MAKS_OPSI"
-                class="text-[17px] lg:text-[19px] leading-[26px] text-wf-brand disabled:text-wf-muted"
+                class="tombol-aksi"
               >
                 + Tambah opsi
               </button>
@@ -547,9 +541,9 @@ function hapusBerkas() {
               v-if="daftarSoal.length > 1"
               type="button"
               @click="hapusSoalAktif"
-              class="self-start text-[15px] text-wf-no-text hover:underline"
+              class="self-start rounded-xl bg-wf-card border border-wf-no-border hover:bg-red-50 px-4 lg:px-5 py-3 text-[16px] lg:text-[19px] leading-[26px] font-semibold tracking-[0.2px] text-wf-no transition"
             >
-              Hapus soal {{ indeksAktif + 1 }}
+              HAPUS SOAL {{ indeksAktif + 1 }}
             </button>
           </div>
 
