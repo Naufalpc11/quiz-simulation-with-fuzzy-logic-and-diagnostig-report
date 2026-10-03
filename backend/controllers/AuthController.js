@@ -1,5 +1,6 @@
 import { supabase, supabaseAdmin } from '../config/db.js';
 import { successResponse, errorResponse } from '../models/apiResponse.js';
+import { urlFotoProfil } from '../services/fotoProfilService.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -45,7 +46,7 @@ export const login = async (req, res) => {
     // Ambil data tambahan dari public."User" (yang tidak ada di auth.users)
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('User')
-      .select('nama, username, role')
+      .select('nama, username, role, fotoProfil')
       .eq('idUser', data.user.id)
       .single();
 
@@ -139,6 +140,7 @@ export const login = async (req, res) => {
             username: profile.username,
             nickname: profile.username,
             role: profile.role,
+            foto_profil: urlFotoProfil(profile.fotoProfil),
           },
         },
       }),
@@ -391,6 +393,7 @@ export const me = async (req, res) => {
           username: req.currentUser.username,
           nickname: req.currentUser.username,
           role: req.currentUser.role,
+          foto_profil: urlFotoProfil(req.currentUser.fotoProfil),
         },
       },
     }),
