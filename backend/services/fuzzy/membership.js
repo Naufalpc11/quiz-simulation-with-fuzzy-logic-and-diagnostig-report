@@ -87,18 +87,25 @@ export function fuzzifyResponseTime(responseTimeSeconds, targetTime = 60) {
   };
 }
 
-// Singleton mapping for question difficulty
+// Singleton mapping for question difficulty (supports strings and integer 1, 2, 3)
 export function fuzzifyDifficulty(difficultyStr) {
-  const normalized = typeof difficultyStr === 'string' ? difficultyStr.trim().toLowerCase() : '';
-
   let matchedDifficulty = DIFFICULTY_LEVELS.SEDANG;
 
-  if (normalized === 'mudah' || normalized === 'easy') {
+  if (difficultyStr === 1 || difficultyStr === '1') {
     matchedDifficulty = DIFFICULTY_LEVELS.MUDAH;
-  } else if (normalized === 'sedang' || normalized === 'medium') {
+  } else if (difficultyStr === 2 || difficultyStr === '2') {
     matchedDifficulty = DIFFICULTY_LEVELS.SEDANG;
-  } else if (normalized === 'sulit' || normalized === 'hard' || normalized === 'difficult') {
+  } else if (difficultyStr === 3 || difficultyStr === '3') {
     matchedDifficulty = DIFFICULTY_LEVELS.SULIT;
+  } else if (typeof difficultyStr === 'string') {
+    const normalized = difficultyStr.trim().toLowerCase();
+    if (normalized === 'mudah' || normalized === 'easy') {
+      matchedDifficulty = DIFFICULTY_LEVELS.MUDAH;
+    } else if (normalized === 'sedang' || normalized === 'medium') {
+      matchedDifficulty = DIFFICULTY_LEVELS.SEDANG;
+    } else if (normalized === 'sulit' || normalized === 'hard' || normalized === 'difficult') {
+      matchedDifficulty = DIFFICULTY_LEVELS.SULIT;
+    }
   }
 
   return {

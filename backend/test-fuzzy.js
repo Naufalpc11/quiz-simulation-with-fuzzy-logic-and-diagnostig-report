@@ -182,6 +182,77 @@ console.log('Running Fuzzy Autograding Service Tests...\n');
   assert(nullRes.totalSoal === 0, 'Null answers parameter handled gracefully');
 }
 
+// 9. Robustness & Extreme Inputs
+{
+  const itemZero = evaluateItem({ isCorrect: true, responseTime: 0, difficulty: 'Sedang', targetTime: 0 });
+  assert(itemZero.crispScore > 0 && itemZero.meta.targetTime === 60, 'Target time 0 falls back to 60s');
+
+  const itemNeg = evaluateItem({ isCorrect: false, responseTime: -30, difficulty: null, targetTime: undefined });
+  assert(itemNeg.meta.responseTime === 0 && itemNeg.meta.difficulty === 'Sedang', 'Negative time clamped and null diff defaulted');
+
+  const itemDiffInt = evaluateItem({ isCorrect: true, responseTime: 15, difficulty: 1, targetTime: 60 });
+  assert(itemDiffInt.meta.difficulty === 'Mudah' && itemDiffInt.linguisticLevel === LINGUISTIC_LEVELS.TINGGI, 'Integer difficulty (1 = Mudah) supported');
+
+  const messyQuiz = evaluateQuiz([null, { isCorrect: true, responseTime: 20 }, undefined]);
+  assert(messyQuiz.totalSoal === 3 && messyQuiz.totalBenar === 1, 'Array with null/undefined items handled safely');
+}
+
+// 10. Realistic Student Profiles
+{
+  // Profil 1: Siswa Cepat tapi Asal Menjawab (Akurasi Rendah, Waktu Sangat Singkat)
+  const profilCepatAsal = evaluateQuiz([
+    { isCorrect: false, responseTime: 8, difficulty: 'Mudah' },
+    { isCorrect: false, responseTime: 10, difficulty: 'Sedang' },
+    { isCorrect: false, responseTime: 12, difficulty: 'Sulit' },
+    { isCorrect: false, responseTime: 9, difficulty: 'Sedang' },
+    { isCorrect: true, responseTime: 11, difficulty: 'Mudah' },
+  ], 50);
+
+  assert(profilCepatAsal.akurasi === 20.0, 'Profil 1: Akurasi rendah (20%)');
+  assert(profilCepatAsal.kategoriFuzzy === LINGUISTIC_LEVELS.SANGAT_RENDAH, 'Profil 1: Kategori Sangat Rendah');
+  assert(profilCepatAsal.rekomendasi.includes('impulsive answering'), 'Profil 1: Peringatan terburu-buru terdeteksi');
+
+  // Profil 2: Siswa Teliti (Akurasi Tinggi, Waktu Sedikit di Atas Target)
+  const profilTeliti = evaluateQuiz([
+    { isCorrect: true, responseTime: 70, difficulty: 'Mudah' },
+    { isCorrect: true, responseTime: 75, difficulty: 'Sedang' },
+    { isCorrect: true, responseTime: 85, difficulty: 'Sulit' },
+    { isCorrect: true, responseTime: 68, difficulty: 'Sedang' },
+    { isCorrect: true, responseTime: 80, difficulty: 'Sulit' },
+  ], 378);
+
+  assert(profilTeliti.akurasi === 100.0, 'Profil 2: Akurasi sempurna (100%)');
+  assert(profilTeliti.kategoriFuzzy === LINGUISTIC_LEVELS.SEDANG || profilTeliti.kategoriFuzzy === LINGUISTIC_LEVELS.TINGGI, 'Profil 2: Kategori Sedang/Tinggi');
+  assert(profilTeliti.rekomendasi.includes('relatif lama'), 'Profil 2: Catatan waktu bernalar terdeteksi');
+
+  // Profil 3: Siswa Lambat & Kesulitan (Akurasi Rendah, Waktu Habis)
+  const profilLambatKesulitan = evaluateQuiz([
+    { isCorrect: false, responseTime: 85, difficulty: 'Mudah' },
+    { isCorrect: false, responseTime: 90, difficulty: 'Sedang' },
+    { isCorrect: false, responseTime: 80, difficulty: 'Sulit' },
+    { isCorrect: true, responseTime: 75, difficulty: 'Sedang' },
+    { isCorrect: false, responseTime: 95, difficulty: 'Sulit' },
+  ], 425);
+
+  assert(profilLambatKesulitan.akurasi === 20.0, 'Profil 3: Akurasi rendah (20%)');
+  assert(profilLambatKesulitan.kategoriFuzzy === LINGUISTIC_LEVELS.RENDAH || profilLambatKesulitan.kategoriFuzzy === LINGUISTIC_LEVELS.SANGAT_RENDAH, 'Profil 3: Kategori Rendah/Sangat Rendah');
+  assert(profilLambatKesulitan.skorFuzzy < 50, 'Profil 3: Skor fuzzy rendah (<50)');
+
+  // Profil 4: Siswa Mahir (Akurasi Sempurna, Waktu Cepat)
+  const profilMahir = evaluateQuiz([
+    { isCorrect: true, responseTime: 12, difficulty: 'Mudah' },
+    { isCorrect: true, responseTime: 15, difficulty: 'Sedang' },
+    { isCorrect: true, responseTime: 18, difficulty: 'Sulit' },
+    { isCorrect: true, responseTime: 14, difficulty: 'Sedang' },
+    { isCorrect: true, responseTime: 16, difficulty: 'Sulit' },
+  ], 75);
+
+  assert(profilMahir.akurasi === 100.0, 'Profil 4: Akurasi sempurna (100%)');
+  assert(profilMahir.kategoriFuzzy === LINGUISTIC_LEVELS.TINGGI, 'Profil 4: Kategori Tinggi');
+  assert(profilMahir.skorFuzzy >= 80, `Profil 4: Skor fuzzy sangat tinggi (>=80): ${profilMahir.skorFuzzy}`);
+  assert(profilMahir.rekomendasi.includes('sangat mengesankan') || profilMahir.rekomendasi.includes('sangat tinggi'), 'Profil 4: Rekomendasi apresiasi tinggi');
+}
+
 console.log(`\nSummary: ${passedTests} passed, ${failedTests} failed`);
 
 if (failedTests > 0) {
