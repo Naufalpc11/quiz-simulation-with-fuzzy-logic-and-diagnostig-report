@@ -1,0 +1,145 @@
+<script setup>
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ambilDaftarBab } from '../services/bab'
+import { getAvatar, getUser, SessionExpiredError } from '../services/auth'
+import logoImage from '../assets/logo-esikap.png'
+import avatarImage from '../assets/icons/avatar.svg'
+
+const router = useRouter()
+const user = ref(getUser())
+const avatar = ref(getAvatar() || avatarImage)
+const bab = ref([])
+const loading = ref(true)
+const errorMsg = ref('')
+const notice = ref('')
+
+const fallbackRoadmap = [
+  {
+    namaBab: 'Ejaan',
+    ringkasan: 'Prioritas utama. Nilai terakhir 60 — 2 dari 5 soal belum tepat.',
+    cakupan: 'kata baku, imbuhan di-, dan kata depan di.',
+    detail: '5 soal · nilai terakhir 60 · perlu diulang',
+    status: 'roadmap',
+  },
+  {
+    namaBab: 'Ejaan',
+    ringkasan: 'Sudah lulus dengan nilai 80, tapi Tahap 1 Kata Baku masih lemah.',
+    cakupan: 'kata baku, imbuhan di-, dan kata depan di.',
+    detail: '5 soal · nilai terakhir 80 · Tahap 1 perlu diperkuat',
+    status: 'roadmap',
+  },
+  {
+    namaBab: 'Paragraf',
+    ringkasan: 'Belum pernah dikerjakan. Terbuka setelah Tanda Baca mencapai nilai minimal 70.',
+    cakupan: 'kepaduan, pola pengembangan, dan kalimat topik.',
+    detail: '5 soal · belum ada nilai',
+    status: 'terkunci',
+  },
+  {
+    namaBab: 'Diksi',
+    ringkasan: 'Belum pernah dikerjakan. Dianjurkan setelah Paragraf selesai.',
+    cakupan: 'pilihan kata, makna denotatif dan referensi.',
+    detail: '5 soal · belum ada nilai',
+    status: 'terkunci',
+  },
+  {
+    namaBab: 'Kalimat Efektif',
+    ringkasan: 'Sudah kuat dengan nilai 94. Tidak perlu diulang.',
+    cakupan: 'kehematan, kesepadanan, kesejajaran, dan kelogisan.',
+    detail: '5 soal · nilai terakhir 94 · belum selesai',
+    status: 'roadmap',
+  },
+]
+
+const roadmap = computed(() => bab.value.length
+  ? bab.value.map((item, index) => ({
+      ...fallbackRoadmap[index % fallbackRoadmap.length],
+      namaBab: item.namaBab,
+    }))
+  : fallbackRoadmap)
+
+function bukaRoadmap(item) {
+  if (item.status === 'terkunci') {
+    notice.value = `Roadmap ${item.namaBab} masih terkunci. Selesaikan bab sebelumnya terlebih dahulu.`
+    return
+  }
+  const itemBab = bab.value.find((data) => data.namaBab === item.namaBab)
+  if (itemBab?.idBab) router.push(`/peta-belajar/${itemBab.idBab}/roadmap`)
+  else notice.value = `Roadmap ${item.namaBab} akan segera tersedia.`
+}
+
+function riwayatSoal(item) {
+  notice.value = `Riwayat soal ${item.namaBab} akan segera tersedia.`
+}
+
+onMounted(async () => {
+  try {
+    bab.value = await ambilDaftarBab()
+  } catch (err) {
+    if (err instanceof SessionExpiredError) {
+      router.push('/')
+      return
+    }
+    errorMsg.value = err.message
+  } finally {
+    loading.value = false
+  }
+})
+</script>
+
+<template>
+  <div class="min-h-screen bg-wf-page text-wf-text">
+    <header class="border-b border-wf-border bg-wf-card px-6 py-4 sm:px-10 lg:px-[6.7%]">
+      <div class="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-x-8 gap-y-2 lg:gap-x-10">
+          <RouterLink to="/dashboard" class="block h-10 w-[105px] shrink-0 sm:w-[125px]">
+            <img :src="logoImage" alt="eSikap" class="size-full object-contain" />
+          </RouterLink>
+          <nav class="flex flex-wrap items-center gap-x-7 text-[16px] sm:text-[17px]">
+            <RouterLink to="/dashboard" class="py-1 text-wf-secondary">Latihan</RouterLink>
+            <RouterLink to="/statistik" class="py-1 text-wf-secondary">Statistik</RouterLink>
+            <RouterLink to="/peta-belajar" class="border-b-2 border-wf-brand py-1 text-wf-text">Peta Belajar</RouterLink>
+          </nav>
+        </div>
+        <div class="flex items-center gap-3 text-sm text-wf-secondary sm:text-[15px]">
+          <span>{{ user?.nama || 'Mahasiswa' }}<span v-if="user?.username"> · {{ user.username }}</span></span>
+          <img :src="avatar" alt="" class="size-8 rounded-full object-cover" />
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-[780px] px-6 pb-12 pt-8 sm:px-0">
+      <h1 class="text-[21px] font-bold sm:text-[23px]">Peta belajar saya, Bahasa Indonesia</h1>
+      <p class="mt-1 text-[14px] text-wf-secondary">Pilih bab untuk membuka roadmap belajarnya. Status tiap bab diambil dari nilai kuis terakhirmu.</p>
+      <p v-if="notice" role="status" class="mt-4 rounded-md border border-wf-brand-border bg-wf-brand-soft px-4 py-3 text-sm text-wf-brand">{{ notice }}</p>
+      <p v-if="errorMsg" role="alert" class="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-wf-no-text">{{ errorMsg }}</p>
+      <p v-if="loading" class="mt-6 text-wf-secondary">Memuat peta belajar...</p>
+
+      <section v-else class="mt-5 flex flex-col gap-3">
+        <article v-for="(item, index) in roadmap" :key="`${item.namaBab}-${index}`" class="grid gap-4 rounded-md border border-wf-border-subtle bg-wf-card p-4 sm:grid-cols-[32px_minmax(0,1fr)_290px] sm:items-center">
+          <div class="flex size-7 items-center justify-center rounded-full border-2 border-wf-brand text-sm">{{ index + 1 }}</div>
+          <div>
+            <h2 class="text-[14px] font-bold">{{ item.namaBab }}</h2>
+            <p class="mt-1 text-[12px] leading-5 text-wf-secondary">{{ item.ringkasan }}</p>
+            <p class="mt-1 text-[12px] leading-5 text-wf-secondary">Cakupan: {{ item.cakupan }}</p>
+            <p class="mt-1 text-[12px] text-wf-secondary">{{ item.detail }}</p>
+          </div>
+          <div class="flex flex-wrap justify-start gap-3 sm:justify-end">
+            <button type="button" class="rounded-xl border border-wf-brand-border px-4 py-3 text-sm font-semibold text-wf-brand hover:bg-wf-brand-soft" @click="riwayatSoal(item)">
+              RIWAYAT SOAL
+            </button>
+            <button
+              type="button"
+              class="rounded-xl px-4 py-3 text-sm font-semibold"
+              :class="item.status === 'terkunci' ? 'border border-red-400 text-wf-no-text' : 'bg-wf-brand text-white hover:bg-wf-accent-hover'"
+              @click="bukaRoadmap(item)"
+            >
+              {{ item.status === 'terkunci' ? 'TERKUNCI' : 'LIHAT ROADMAP' }}
+            </button>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+</template>

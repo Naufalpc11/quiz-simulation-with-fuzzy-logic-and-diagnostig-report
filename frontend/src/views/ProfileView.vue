@@ -28,8 +28,7 @@ async function handleLogout() {
           <nav class="flex flex-wrap items-center gap-x-7 gap-y-1 text-[16px] sm:text-[17px]">
             <RouterLink to="/dashboard" class="py-1 text-wf-secondary hover:text-wf-text">Latihan</RouterLink>
             <RouterLink to="/statistik" class="py-1 text-wf-secondary hover:text-wf-text">Statistik</RouterLink>
-            <button type="button" class="py-1 text-wf-secondary hover:text-wf-text">Peta belajar</button>
-            <button type="button" class="py-1 text-wf-secondary hover:text-wf-text">Panduan</button>
+            <RouterLink to="/peta-belajar" class="py-1 text-wf-secondary hover:text-wf-text">Peta belajar</RouterLink>
           </nav>
         </div>
         <div class="flex items-center gap-3 text-sm text-wf-secondary sm:text-[15px]">

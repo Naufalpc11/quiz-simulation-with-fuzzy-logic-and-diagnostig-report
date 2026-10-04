@@ -1,0 +1,100 @@
+<script setup>
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { ambilBab } from '../services/bab'
+import { getAvatar, getUser, SessionExpiredError } from '../services/auth'
+import logoImage from '../assets/logo-esikap.png'
+import avatarImage from '../assets/icons/avatar.svg'
+
+const props = defineProps({ id: { type: String, required: true } })
+const router = useRouter()
+const user = ref(getUser())
+const avatar = ref(getAvatar() || avatarImage)
+const bab = ref(null)
+const loading = ref(true)
+const errorMsg = ref('')
+
+const tahapDefault = [
+  {
+    judul: 'Kata Baku',
+    ringkasan: '1 dari 2 soal belum tepat. Kamu memilih "analisa", bentuk bakunya "analisis".',
+    tujuan: 'menjelaskan pengertian kata baku dan tidak baku · membedakan keduanya dalam kalimat · memilih kata baku untuk konteks formal dan akademik · memperbaiki kata tidak baku.',
+    kegiatan: 'baca ciri-ciri kata baku · amati contoh aktivitas, analisis, izin, risiko · kelompokkan baku / tidak baku · latihan pilihan ganda · perbaiki 10 kalimat · tulis 5 kalimat.',
+  },
+  {
+    judul: 'Imbuhan di- dan Kata Depan di',
+    ringkasan: '3 dari 3 soal tepat: "dibaca", "di sekolah", dan "dikirim" semuanya benar.',
+    tujuan: 'menjelaskan perbedaan imbuhan di- dan kata depan di · menulis kata berimbuhan di- secara serangkai · menulis kata depan di secara terpisah · memperbaiki kesalahan penulisannya.',
+    kegiatan: 'pelajari aturannya · amati dibaca, ditulis, dikerjakan · amati di rumah, di sekolah, di kelas · kelompokkan 20 contoh · perbaiki 4 kalimat salah · tulis 5 + 5 kalimat.',
+  },
+]
+
+const tahap = computed(() => tahapDefault)
+const namaBab = computed(() => bab.value?.namaBab || 'Ejaan')
+const nilaiTerakhir = computed(() => namaBab.value.toLowerCase().includes('ejaan') ? 80 : 0)
+
+onMounted(async () => {
+  try {
+    bab.value = await ambilBab(props.id)
+  } catch (err) {
+    if (err instanceof SessionExpiredError) {
+      router.push('/')
+      return
+    }
+    errorMsg.value = err.message
+  } finally {
+    loading.value = false
+  }
+})
+</script>
+
+<template>
+  <div class="min-h-screen bg-wf-page text-wf-text">
+    <header class="border-b border-wf-border bg-wf-card px-6 py-4 sm:px-10 lg:px-[6.7%]">
+      <div class="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-x-8 gap-y-2 lg:gap-x-10">
+          <RouterLink to="/dashboard" class="block h-10 w-[105px] shrink-0 sm:w-[125px]">
+            <img :src="logoImage" alt="eSikap" class="size-full object-contain" />
+          </RouterLink>
+          <nav class="flex flex-wrap items-center gap-x-7 text-[16px] sm:text-[17px]">
+            <RouterLink to="/dashboard" class="py-1 text-wf-secondary">Latihan</RouterLink>
+            <RouterLink to="/statistik" class="py-1 text-wf-secondary">Statistik</RouterLink>
+            <RouterLink to="/peta-belajar" class="border-b-2 border-wf-brand py-1 text-wf-text">Peta belajar</RouterLink>
+          </nav>
+        </div>
+        <div class="flex items-center gap-3 text-sm text-wf-secondary sm:text-[15px]">
+          <span>{{ user?.nama || 'Mahasiswa' }}<span v-if="user?.username"> · {{ user.username }}</span></span>
+          <img :src="avatar" alt="" class="size-8 rounded-full object-cover" />
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-[1000px] px-6 pb-12 pt-9 sm:px-10 lg:px-0">
+      <p class="font-mono text-[13px] uppercase tracking-[0.12em] text-wf-secondary">
+        <RouterLink to="/peta-belajar" class="hover:text-wf-brand">← Peta belajar</RouterLink>
+        <span class="mx-2">/</span>{{ namaBab }}
+      </p>
+      <h1 class="mt-5 text-[27px] font-bold sm:text-[30px]">Roadmap bab {{ namaBab }}</h1>
+      <p class="mt-1 text-[17px] text-wf-secondary">
+        Bahasa Indonesia · {{ tahap.length }} tahap · nilai terakhir {{ nilaiTerakhir }}. Urutan tahap di dalam bab ini beserta status penguasaanmu.
+      </p>
+
+      <p v-if="loading" class="mt-7 text-wf-secondary">Memuat roadmap...</p>
+      <p v-else-if="errorMsg" role="alert" class="mt-7 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-wf-no-text">{{ errorMsg }}</p>
+      <section v-else class="mt-6 flex flex-col gap-4">
+        <article v-for="(item, index) in tahap" :key="item.judul" class="grid gap-4 rounded-md border border-wf-border-subtle bg-wf-card p-5 sm:grid-cols-[48px_minmax(0,1fr)] sm:items-center">
+          <div class="flex size-9 items-center justify-center rounded-full border-2 border-wf-brand text-[17px]">{{ index + 1 }}</div>
+          <div>
+            <h2 class="text-[18px] font-bold">Tahap {{ index + 1 }} — {{ item.judul }}</h2>
+            <p class="mt-2 text-[16px] leading-6 text-wf-secondary">{{ item.ringkasan }}</p>
+            <p class="mt-2 text-[16px] leading-6 text-wf-secondary"><strong class="font-medium text-wf-text">Tujuan:</strong> {{ item.tujuan }}</p>
+            <p class="mt-2 text-[16px] leading-6 text-wf-secondary"><strong class="font-medium text-wf-text">Kegiatan:</strong> {{ item.kegiatan }}</p>
+          </div>
+        </article>
+        <RouterLink to="/peta-belajar" class="mt-3 w-fit rounded-xl bg-wf-accent px-6 py-3 text-[18px] font-bold text-white hover:bg-wf-accent-hover">
+          ← KEMBALI
+        </RouterLink>
+      </section>
+    </main>
+  </div>
+</template>

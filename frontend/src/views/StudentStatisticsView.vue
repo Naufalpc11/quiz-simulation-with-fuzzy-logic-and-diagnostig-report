@@ -70,8 +70,7 @@ onMounted(async () => {
           <nav class="flex flex-wrap items-center gap-x-7 text-[16px] sm:text-[17px]">
             <RouterLink to="/dashboard" class="py-1 text-wf-secondary hover:text-wf-text">Latihan</RouterLink>
             <RouterLink to="/statistik" class="border-b-2 border-wf-brand py-1 text-wf-text">Statistik</RouterLink>
-            <button type="button" class="py-1 text-wf-secondary">Peta belajar</button>
-            <button type="button" class="py-1 text-wf-secondary">Panduan</button>
+            <RouterLink to="/peta-belajar" class="py-1 text-wf-secondary">Peta belajar</RouterLink>
           </nav>
         </div>
         <div class="flex items-center gap-3 text-sm text-wf-secondary sm:text-[15px]">

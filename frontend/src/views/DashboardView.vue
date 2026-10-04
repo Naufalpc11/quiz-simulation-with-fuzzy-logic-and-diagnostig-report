@@ -118,12 +118,9 @@ onMounted(async () => {
             <RouterLink to="/statistik" class="py-1 text-wf-secondary hover:text-wf-text">
               Statistik
             </RouterLink>
-            <button type="button" class="py-1 text-wf-secondary hover:text-wf-text" @click="notice = 'Peta belajar akan segera tersedia.'">
+            <RouterLink to="/peta-belajar" class="py-1 text-wf-secondary hover:text-wf-text">
               Peta belajar
-            </button>
-            <button type="button" class="py-1 text-wf-secondary hover:text-wf-text" @click="notice = 'Panduan belajar akan segera tersedia.'">
-              Panduan
-            </button>
+            </RouterLink>
           </nav>
         </div>
 
