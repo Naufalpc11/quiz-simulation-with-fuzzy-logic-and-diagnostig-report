@@ -261,6 +261,12 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
+    console.info('[RESET_PASSWORD_EMAIL_ACCEPTED]', {
+      waktu: new Date().toISOString(),
+      status: 200,
+      pesan: 'Supabase menerima permintaan reset password.',
+    });
+
     return res.json(
       successResponse({
         message: 'Jika email terdaftar, tautan reset password telah dikirim.',
@@ -288,6 +294,19 @@ export const resetPasswordBackground = (req, res) => {
 export const resetPassword = async (req, res) => {
   try {
     const { access_token, password } = req.body;
+    const frontendOrigins = (process.env.FRONTEND_URLS || 'http://localhost:5173')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean)
+      .map((origin) => new URL(origin));
+    const frontendOrigin = frontendOrigins.find((origin) => origin.hostname === req.hostname)
+      || frontendOrigins[0]
+      || new URL('http://localhost:5173');
+    const loginUrl = new URL('/', frontendOrigin);
+
+    if (!['http:', 'https:'].includes(loginUrl.protocol)) {
+      throw new Error('FRONTEND_URLS harus menggunakan URL HTTP atau HTTPS.');
+    }
 
     if (!access_token || !password) {
       return res.status(400).json(
@@ -330,7 +349,10 @@ export const resetPassword = async (req, res) => {
       .eq('idAkun', userData.user.id);
 
     return res.json(
-      successResponse({ message: 'Password berhasil diubah. Silakan login dengan password baru.' }),
+      successResponse({
+        message: 'Password berhasil diubah. Silakan login dengan password baru.',
+        data: { loginUrl: loginUrl.toString() },
+      }),
     );
   } catch (error) {
     return res.status(500).json(

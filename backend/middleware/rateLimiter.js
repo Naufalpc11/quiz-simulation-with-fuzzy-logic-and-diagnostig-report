@@ -46,5 +46,15 @@ export const batasLupaPassword = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   keyGenerator: kunciEmail,
-  handler: tolak('Terlalu banyak permintaan reset password. Coba lagi dalam satu jam.'),
+  handler: (req, res) => {
+    const message = 'Terlalu banyak permintaan reset password. Coba lagi dalam satu jam.';
+
+    console.warn('[RESET_PASSWORD_RATE_LIMIT]', {
+      waktu: new Date().toISOString(),
+      status: 429,
+      pesan: message,
+    });
+
+    return res.status(429).json(errorResponse({ message }));
+  },
 });
