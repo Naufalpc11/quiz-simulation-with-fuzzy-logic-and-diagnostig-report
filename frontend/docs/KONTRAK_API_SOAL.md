@@ -1,5 +1,10 @@
 # Kontrak API Soal (untuk tim backend)
 
+> **Status (1 Okt 2026):** nomor 1–3 dan `jumlahSoal` sudah diimplementasikan di `develop`
+> (commit `e962697`, "endpoint soal per kuis sesuai kontrak FE"). Tabel `Kuis` juga sudah punya
+> `durasi` (menit), dan editor sekarang ikut mengirimkannya. Yang masih terbuka: `status`
+> Terbit/Draf (opsional) dan unggah dokumen (nomor 5).
+
 Halaman **Kelola Kuis** dan **Tambah Kuis / Edit Soal** di frontend sudah jadi.
 Bab dan Kuis memakai endpoint yang sudah ada. Yang **belum ada** di backend:
 

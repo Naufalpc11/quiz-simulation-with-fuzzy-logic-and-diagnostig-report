@@ -1,8 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '../views/LoginView.vue'
 import DashboardView from '../views/DashboardView.vue'
+import KelolaBabView from '../views/KelolaBabView.vue'
+import BabFormView from '../views/BabFormView.vue'
 import KelolaKuisView from '../views/KelolaKuisView.vue'
+import KuisFormView from '../views/KuisFormView.vue'
 import EditorKuisView from '../views/EditorKuisView.vue'
+import KelolaAkunView from '../views/KelolaAkunView.vue'
+import ProfileView from '../views/ProfileView.vue'
+import EditPhotoView from '../views/EditPhotoView.vue'
+import StudentBabView from '../views/StudentBabView.vue'
+import StudentQuizView from '../views/StudentQuizView.vue'
+import QuizResultView from '../views/QuizResultView.vue'
+import StudentStatisticsView from '../views/StudentStatisticsView.vue'
+import StudentLearningMapView from '../views/StudentLearningMapView.vue'
+import StudentRoadmapView from '../views/StudentRoadmapView.vue'
+import { ROLE } from '../services/roles'
 import {
   isLoggedIn,
   fetchMe,
@@ -15,15 +28,33 @@ import {
 
 // Endpoint tulis Bab/Kuis di backend hanya menerima role 'Admin' (guru).
 const khususAdmin = { butuhLogin: true, role: 'Admin' }
+// /api/account hanya menerima Super Admin.
+const khususSuperAdmin = { butuhLogin: true, role: ROLE.SUPER_ADMIN }
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'login', component: LoginView, meta: { tamu: true } },
     { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { butuhLogin: true } },
-    { path: '/kuis', name: 'kelola-kuis', component: KelolaKuisView, meta: khususAdmin },
+    { path: '/statistik', name: 'statistik', component: StudentStatisticsView, meta: { butuhLogin: true } },
+    { path: '/peta-belajar', name: 'peta-belajar', component: StudentLearningMapView, meta: { butuhLogin: true } },
+    { path: '/peta-belajar/:id/roadmap', name: 'roadmap-bab', component: StudentRoadmapView, props: true, meta: { butuhLogin: true } },
+    { path: '/profil', name: 'profil', component: ProfileView, meta: { butuhLogin: true } },
+    { path: '/profil/edit-foto', name: 'edit-foto', component: EditPhotoView, meta: { butuhLogin: true } },
+    { path: '/latihan/:id', name: 'latihan-bab', component: StudentBabView, props: true, meta: { butuhLogin: true } },
+    { path: '/kuis/:id/kerjakan', name: 'kerjakan-kuis', component: StudentQuizView, props: true, meta: { butuhLogin: true } },
+    { path: '/kuis/:id/hasil', name: 'hasil-kuis', component: QuizResultView, props: true, meta: { butuhLogin: true } },
+    { path: '/bab', name: 'kelola-bab', component: KelolaBabView, meta: khususAdmin },
+    { path: '/bab/tambah', name: 'tambah-bab', component: BabFormView, meta: khususAdmin },
+    { path: '/bab/:id/edit', name: 'edit-bab', component: BabFormView, props: true, meta: khususAdmin },
+    // Kelola Kuis selalu untuk satu bab (dibuka dengan klik nama bab).
+    { path: '/bab/:id/kuis', name: 'kelola-kuis', component: KelolaKuisView, props: true, meta: khususAdmin },
+    // Alamat lama daftar semua kuis: diarahkan ke Kelola Bab supaya link lama tidak rusak.
+    { path: '/kuis', redirect: '/bab' },
     { path: '/kuis/tambah', name: 'tambah-kuis', component: EditorKuisView, meta: khususAdmin },
+    { path: '/kuis/:id/edit', name: 'edit-kuis', component: KuisFormView, props: true, meta: khususAdmin },
     { path: '/kuis/:id/soal', name: 'edit-soal', component: EditorKuisView, props: true, meta: khususAdmin },
+    { path: '/akun', name: 'kelola-akun', component: KelolaAkunView, meta: khususSuperAdmin },
     // Alamat ngawur diarahkan ke login, bukan halaman kosong.
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],

@@ -1,3 +1,5 @@
+import { ROLE } from './roles'
+
 const API_URL = import.meta.env.VITE_API_URL
 
 if (!API_URL) {
@@ -9,6 +11,7 @@ const TOKEN_KEY = 'token'
 const REFRESH_KEY = 'refresh_token'
 const EXPIRES_KEY = 'expires_at'
 const NOTICE_KEY = 'session_notice'
+const AVATAR_KEY = 'avatar_url'
 
 // Token ditukar lebih awal, bukan tepat saat mati, supaya permintaan yang
 // sedang berjalan tidak keburu ditolak di tengah jalan.
@@ -147,9 +150,12 @@ export async function keluar() {
   }
 }
 
-// Admin (guru) langsung ke halaman kelola kuis, role lain ke dashboard.
+// Admin (guru) langsung ke Kelola Bab (pintu masuk menu Kuis), Super Admin ke
+// kelola akun, role lain ke dashboard.
+const HALAMAN_AWAL = { [ROLE.ADMIN]: '/bab', [ROLE.SUPER_ADMIN]: '/akun' }
+
 export function halamanAwal(user = getUser()) {
-  return user?.role === 'Admin' ? '/kuis' : '/dashboard'
+  return HALAMAN_AWAL[user?.role] ?? '/dashboard'
 }
 
 export async function fetchMe() {
@@ -158,6 +164,12 @@ export async function fetchMe() {
   const user = payload.data.user
   localStorage.setItem(USER_KEY, JSON.stringify(user))
   return user
+}
+
+export async function updateProfile(data) {
+  const payload = await kirimTerautentikasi('/auth/me', { method: 'PUT', body: data })
+  localStorage.setItem(USER_KEY, JSON.stringify(payload.data.user))
+  return payload.data.user
 }
 
 export async function requestPasswordReset(email) {
@@ -193,6 +205,14 @@ export function getUser() {
   } catch {
     return null
   }
+}
+
+export function getAvatar() {
+  return localStorage.getItem(AVATAR_KEY)
+}
+
+export function saveAvatar(dataUrl) {
+  localStorage.setItem(AVATAR_KEY, dataUrl)
 }
 
 export function isLoggedIn() {

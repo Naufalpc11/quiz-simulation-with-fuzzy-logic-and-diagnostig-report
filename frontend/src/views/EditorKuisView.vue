@@ -36,7 +36,9 @@ const modeEdit = computed(() => Boolean(props.id))
 const metode = ref('manual')
 
 const daftarBab = ref([])
-const info = ref({ judul: '', idBab: null, deskripsi: '' })
+// durasi = lama pengerjaan seluruh kuis (menit). Default 30 sama dengan
+// default kolom Kuis.durasi di database.
+const info = ref({ judul: '', idBab: null, deskripsi: '', durasi: 30 })
 const daftarSoal = ref([soalKosong()])
 const indeksAktif = ref(0)
 
@@ -56,6 +58,8 @@ function soalKosong() {
     opsi: ['', '', '', '', ''],
     kunci: null,
     difficulty: 'Sedang',
+    // Tidak diisi lewat editor; 60 detik sama dengan default kolom Soal.targetTime.
+    // Soal lama tetap membawa nilainya sendiri dari backend.
     targetTime: 60,
     pembahasan: '',
     ringkasan: '',
@@ -67,6 +71,12 @@ const namaBabAktif = computed(
   () => daftarBab.value.find((b) => b.idBab === info.value.idBab)?.namaBab ?? '',
 )
 
+// Bab asal halaman ini (Kelola Kuis bab itu). Dipakai breadcrumb dan tombol
+// Batal supaya kembali ke tempat admin datang.
+const idBabAsal = ref(null)
+const namaBabAsal = computed(() => daftarBab.value.find((b) => b.idBab === idBabAsal.value)?.namaBab ?? '')
+const tautanKembali = computed(() => (idBabAsal.value ? `/bab/${idBabAsal.value}/kuis` : '/bab'))
+
 // ── Validasi ──
 
 function masalahSoal(s) {
@@ -74,7 +84,6 @@ function masalahSoal(s) {
   if (s.opsi.length < MIN_OPSI) return `minimal ${MIN_OPSI} opsi jawaban`
   if (s.opsi.some((o) => !o.trim())) return 'ada opsi jawaban yang kosong'
   if (s.kunci === null) return 'jawaban benar belum dipilih'
-  if (!(Number(s.targetTime) > 0)) return 'durasi harus lebih dari 0 detik'
   return null
 }
 
@@ -162,7 +171,12 @@ onMounted(async () => {
 
     if (modeEdit.value) {
       const kuis = await ambilKuis(props.id)
-      info.value = { judul: kuis.judul, idBab: kuis.idBab, deskripsi: kuis.deskripsi ?? '' }
+      info.value = {
+        judul: kuis.judul,
+        idBab: kuis.idBab,
+        deskripsi: kuis.deskripsi ?? '',
+        durasi: kuis.durasi ?? 30,
+      }
 
       try {
         const soalLama = await ambilSoalKuis(props.id)
@@ -171,10 +185,12 @@ onMounted(async () => {
         if (!(err instanceof EndpointBelumAdaError)) throw err
         infoMsg.value = 'Soal lama belum bisa dimuat karena endpoint soal belum tersedia di backend.'
       }
+      idBabAsal.value = kuis.idBab
     } else {
-      // ?idBab=... dari link lain dipilih lebih dulu, kalau tidak ada pakai bab pertama.
+      // ?idBab=... dari Kelola Kuis bab itu dipilih lebih dulu, kalau tidak ada pakai bab pertama.
       const dariQuery = daftarBab.value.find((b) => String(b.idBab) === route.query.idBab)
       info.value.idBab = (dariQuery ?? daftarBab.value[0])?.idBab ?? null
+      idBabAsal.value = dariQuery?.idBab ?? null
     }
   } catch (err) {
     tanganiError(err)
@@ -204,6 +220,11 @@ async function simpan() {
     errorMsg.value = 'Pilih bab untuk kuis ini.'
     return
   }
+  // Aturan yang sama dengan createKuis/updateKuis di backend.
+  if (!Number.isInteger(info.value.durasi) || info.value.durasi <= 0) {
+    errorMsg.value = 'Durasi kuis harus bilangan bulat lebih dari 0 menit.'
+    return
+  }
   const indeksSalah = daftarSoal.value.findIndex((s) => masalahSoal(s))
   if (indeksSalah !== -1) {
     indeksAktif.value = indeksSalah
@@ -216,6 +237,7 @@ async function simpan() {
     judul: info.value.judul,
     idBab: info.value.idBab,
     deskripsi: info.value.deskripsi.trim() || null,
+    durasi: info.value.durasi,
   }
 
   try {
@@ -230,7 +252,8 @@ async function simpan() {
 
     bersih.value = true
     setNotice(`Kuis "${dataKuis.judul}" berhasil disimpan dengan ${daftarSoal.value.length} soal.`)
-    router.push('/kuis')
+    // Ke Kelola Kuis bab tempat kuis ini disimpan (bisa beda kalau bab-nya diganti).
+    router.push(`/bab/${dataKuis.idBab}/kuis`)
   } catch (err) {
     if (err instanceof EndpointBelumAdaError) {
       errorMsg.value =
@@ -245,7 +268,7 @@ async function simpan() {
 }
 
 function batal() {
-  router.push('/kuis')
+  router.push(tautanKembali.value)
 }
 
 // ── Tab Dokumen ──
@@ -304,7 +327,10 @@ function hapusBerkas() {
       <!-- Judul halaman -->
       <div class="flex flex-col gap-2">
         <p class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">
-          <RouterLink to="/kuis" class="hover:underline">← Kuis</RouterLink>
+          <RouterLink to="/bab" class="hover:underline">← Bab</RouterLink>
+          <template v-if="namaBabAsal">
+            / <RouterLink :to="tautanKembali" class="hover:underline uppercase">{{ namaBabAsal }}</RouterLink>
+          </template>
           / {{ modeEdit ? 'EDIT SOAL' : 'TAMBAH KUIS' }}
         </p>
         <h1 class="text-[28px] leading-9 font-semibold">{{ modeEdit ? 'Edit Soal' : 'Tambah Kuis' }}</h1>
@@ -431,15 +457,18 @@ function hapusBerkas() {
                 class="border border-wf-border-subtle rounded-md p-4 text-[17px] lg:text-[19px] leading-[26px] placeholder:text-wf-muted focus:outline-none focus:ring-2 focus:ring-wf-brand"
               ></textarea>
 
+              <!-- Posisi mengikuti Figma, tapi nilainya milik kuis (Kuis.durasi),
+                   jadi tetap sama saat berpindah soal. -->
               <label class="flex flex-col gap-2 w-full sm:w-[360px] mt-1">
-                <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">DURASI (DETIK)</span>
+                <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">DURASI (MENIT)</span>
                 <input
-                  v-model.number="soal.targetTime"
+                  v-model.number="info.durasi"
                   type="number"
                   min="1"
+                  step="1"
                   class="bg-wf-card border border-wf-border rounded-md p-4 text-[17px] leading-6 focus:outline-none focus:ring-2 focus:ring-wf-brand"
                 />
-                <span class="text-[13px] text-wf-muted">Target waktu mengerjakan soal ini, dipakai penilaian fuzzy.</span>
+                <span class="text-[13px] text-wf-muted">Lama pengerjaan seluruh kuis, berlaku untuk semua soal.</span>
               </label>
             </div>
 
@@ -470,7 +499,7 @@ function hapusBerkas() {
                 type="button"
                 @click="tambahOpsi"
                 :disabled="soal.opsi.length >= MAKS_OPSI"
-                class="text-[17px] lg:text-[19px] leading-[26px] text-wf-brand disabled:text-wf-muted"
+                class="tombol-aksi"
               >
                 + Tambah opsi
               </button>
@@ -524,9 +553,9 @@ function hapusBerkas() {
               v-if="daftarSoal.length > 1"
               type="button"
               @click="hapusSoalAktif"
-              class="self-start text-[15px] text-wf-no-text hover:underline"
+              class="self-start rounded-xl bg-wf-card border border-wf-no-border hover:bg-red-50 px-4 lg:px-5 py-3 text-[16px] lg:text-[19px] leading-[26px] font-semibold tracking-[0.2px] text-wf-no transition"
             >
-              Hapus soal {{ indeksAktif + 1 }}
+              HAPUS SOAL {{ indeksAktif + 1 }}
             </button>
           </div>
 

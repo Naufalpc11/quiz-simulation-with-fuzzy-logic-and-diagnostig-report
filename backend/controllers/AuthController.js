@@ -399,3 +399,67 @@ export const me = async (req, res) => {
     }),
   );
 };
+
+export const updateMe = async (req, res) => {
+  try {
+    const nama = typeof req.body.nama === 'string' ? req.body.nama.trim() : '';
+    const username = typeof req.body.username === 'string' ? req.body.username.trim() : '';
+
+    if (!nama || !username) {
+      return res.status(400).json(
+        errorResponse({ message: 'Nama dan username wajib diisi.' }),
+      );
+    }
+
+    if (!/^[a-zA-Z0-9._-]{3,30}$/.test(username)) {
+      return res.status(400).json(
+        errorResponse({ message: 'Username harus 3-30 karakter dan hanya boleh berisi huruf, angka, titik, garis bawah, atau tanda hubung.' }),
+      );
+    }
+
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .from('User')
+      .select('idUser')
+      .eq('username', username)
+      .neq('idUser', req.currentUser.id)
+      .maybeSingle();
+
+    if (existingError) {
+      return res.status(500).json(errorResponse({ message: existingError.message }));
+    }
+    if (existing) {
+      return res.status(409).json(errorResponse({ message: 'Username sudah digunakan.' }));
+    }
+
+    const { data: profile, error } = await supabaseAdmin
+      .from('User')
+      .update({ nama, username })
+      .eq('idUser', req.currentUser.id)
+      .select('idUser, nama, username, role')
+      .single();
+
+    if (error || !profile) {
+      return res.status(500).json(errorResponse({ message: error?.message || 'Gagal memperbarui profil.' }));
+    }
+
+    return res.json(
+      successResponse({
+        message: 'Profil berhasil diperbarui.',
+        data: {
+          user: {
+            id_user: profile.idUser,
+            email: req.currentUser.email,
+            nama: profile.nama,
+            username: profile.username,
+            nickname: profile.username,
+            role: profile.role,
+          },
+        },
+      }),
+    );
+  } catch (error) {
+    return res.status(500).json(
+      errorResponse({ message: error.message || 'Gagal memperbarui profil.' }),
+    );
+  }
+};

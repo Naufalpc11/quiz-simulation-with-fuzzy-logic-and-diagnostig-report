@@ -30,3 +30,15 @@
   --color-wf-accent-hover: #e06b00;
   --color-wf-accent-light: #ffd173;
 }
+
+/* Tombol aksi kecil di baris daftar admin (Edit, Hapus, Edit Soal).
+   Varian outline dari komponen Button di Figma: aksi sekunder. */
+@utility tombol-aksi {
+  @apply inline-flex items-center justify-center gap-1 rounded-xl border border-wf-brand-border bg-wf-card px-4 py-2
+    text-[15px] leading-6 font-semibold tracking-[0.2px] text-wf-brand transition
+    hover:bg-wf-brand-soft disabled:opacity-60 disabled:cursor-not-allowed;
+}
+
+@utility tombol-aksi-bahaya {
+  @apply tombol-aksi border-wf-no-border text-wf-no hover:bg-red-50;
+}

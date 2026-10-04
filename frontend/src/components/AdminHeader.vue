@@ -1,24 +1,31 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getUser, keluar } from '../services/auth'
+import { getUser, keluar, halamanAwal } from '../services/auth'
+import { ROLE } from '../services/roles'
 import logoImage from '../assets/logo-esikap.png'
 import avatarImage from '../assets/icons/avatar.svg'
+import logOutIcon from '../assets/icons/log-out.svg'
 
 const route = useRoute()
 const router = useRouter()
 const user = getUser()
 const loggingOut = ref(false)
 
-// Rekap dan Panduan belum punya halaman, jadi tampil sebagai teks saja.
-const menu = [
-  { label: 'Kuis', to: '/kuis' },
-  { label: 'Rekap' },
-  { label: 'Panduan' },
-]
+// Super Admin hanya mengelola akun; endpoint Kuis/Bab menolak role itu.
+// Navbar admin sesuai wireframe: Kuis dan Rekap. "Kuis" membuka Kelola Bab
+// dan tetap aktif di seluruh alur bab → kuis → soal.
+// Rekap belum punya halaman, jadi tampil sebagai teks saja.
+const superAdmin = user?.role === ROLE.SUPER_ADMIN
+const menu = superAdmin
+  ? [{ label: 'Akun', to: '/akun', aktifDi: ['/akun'] }]
+  : [
+      { label: 'Kuis', to: '/bab', aktifDi: ['/bab', '/kuis'] },
+      { label: 'Rekap' },
+    ]
 
 function aktif(item) {
-  return item.to && route.path.startsWith(item.to)
+  return item.aktifDi?.some((awalan) => route.path.startsWith(awalan))
 }
 
 async function handleLogout() {
@@ -32,11 +39,11 @@ async function handleLogout() {
   <header
     class="bg-wf-card border-b border-wf-border px-4 sm:px-10 lg:px-20 py-4 lg:py-6 flex flex-wrap items-center justify-between gap-4"
   >
-    <div class="flex items-center gap-6 lg:gap-10">
-      <RouterLink to="/kuis" class="block h-10 w-[125px] shrink-0">
+    <div class="flex flex-wrap items-center gap-x-6 gap-y-2 lg:gap-10">
+      <RouterLink :to="halamanAwal(user)" class="block h-10 w-[125px] shrink-0">
         <img :src="logoImage" alt="eSikap" class="size-full object-contain" />
       </RouterLink>
-      <nav class="flex items-center gap-6 lg:gap-10 text-[17px] lg:text-[19px] leading-[26px]">
+      <nav class="flex flex-wrap items-center gap-x-5 gap-y-1 sm:gap-x-6 lg:gap-10 text-[17px] lg:text-[19px] leading-[26px]">
         <template v-for="item in menu" :key="item.label">
           <RouterLink
             v-if="item.to"
@@ -55,16 +62,19 @@ async function handleLogout() {
 
     <div class="flex items-center gap-4">
       <p class="text-[15px] lg:text-[17px] leading-6 text-wf-secondary">
-        Admin<span v-if="user?.nama"> · {{ user.nama }}</span>
+        {{ user?.role ?? 'Admin' }}<span v-if="user?.nama"> · {{ user.nama }}</span>
       </p>
       <img :src="avatarImage" alt="" class="size-8 shrink-0" />
+      <!-- Ikon Lucide "log-out" (set ikon yang sama dengan ikon lain di Figma). -->
       <button
         type="button"
         @click="handleLogout"
         :disabled="loggingOut"
-        class="text-[15px] text-wf-no-text hover:underline disabled:opacity-60"
+        :aria-label="loggingOut ? 'Sedang keluar' : 'Keluar'"
+        :title="loggingOut ? 'Sedang keluar...' : 'Keluar'"
+        class="flex size-10 shrink-0 items-center justify-center rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-wf-no-border disabled:opacity-60 disabled:cursor-wait"
       >
-        {{ loggingOut ? 'Keluar...' : 'Keluar' }}
+        <span class="size-6"><img :src="logOutIcon" alt="" class="size-full" /></span>
       </button>
     </div>
   </header>

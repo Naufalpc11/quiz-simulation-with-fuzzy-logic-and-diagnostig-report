@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { login, requestPasswordReset, saveSession, setNotice, takeNotice, halamanAwal } from '../services/auth'
 import bgImage from '../assets/bg.jpg'
-import logoImage from '../assets/logo.png'
+import logoImage from '../assets/logo-esikap.png'
 
 const router = useRouter()
 const email = ref('')
@@ -71,7 +71,7 @@ async function handleForgotPassword() {
     <div class="absolute inset-0 bg-black/40"></div>
 
     <div class="relative z-10 w-full max-w-md">
-      <img :src="logoImage" alt="Logo" class="mx-auto mb-6 h-10 object-contain" />
+      <img :src="logoImage" alt="eSikap" class="mx-auto mb-6 h-10 w-[125px] object-contain" />
 
       <div class="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-8">
         <p class="text-xs font-semibold tracking-widest text-gray-500 uppercase">Masuk</p>
