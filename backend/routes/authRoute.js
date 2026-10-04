@@ -1,6 +1,6 @@
 import express from 'express';
 import {
-    login, logout, refresh, me, updateMe, resetPasswordPage, forgotPassword, resetPassword
+    login, logout, refresh, me, updateMe, resetPasswordPage, resetPasswordBackground, forgotPassword, resetPassword
 } from '../controllers/AuthController.js';
 import { verifyLoggedIn } from '../middleware/verifyLoggedIn.js';
 import {
@@ -18,6 +18,7 @@ router.put('/me', verifyLoggedIn, updateMe);
 // JANGAN DI OTAK ATIK!! INI ADALAH ENDPOINT PAKETAN UNTUK RESET PASSWORD
 router.post('/forgot-password', batasLupaPassword, forgotPassword);
 router.get('/reset-password-page', resetPasswordPage); // dibuka dari link di email
+router.get('/reset-password-background', resetPasswordBackground);
 router.post('/reset-password', resetPassword);          // dipanggil dari fetch() di halaman itu
 
 export default router;
