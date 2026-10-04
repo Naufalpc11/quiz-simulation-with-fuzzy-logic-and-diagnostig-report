@@ -59,7 +59,11 @@ function statusKelas(status) {
 }
 
 function ulangi(item) {
-  notice.value = `Latihan "${item.judul}" akan segera dibuka.`
+  if (item.idKuis) {
+    router.push(`/kuis/${item.idKuis}/kerjakan`)
+    return
+  }
+  notice.value = `Latihan "${item.judul}" belum memiliki ID kuis dari server.`
 }
 
 function formatRingkasan() {
