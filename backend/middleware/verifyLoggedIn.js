@@ -21,7 +21,7 @@ export const verifyLoggedIn = async (req, res, next) => {
     // 2. Ambil profil dari public."User"
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('User')
-      .select('idUser, nama, username, role')
+      .select('idUser, nama, username, role, fotoProfil')
       .eq('idUser', userData.user.id)
       .single();
 
