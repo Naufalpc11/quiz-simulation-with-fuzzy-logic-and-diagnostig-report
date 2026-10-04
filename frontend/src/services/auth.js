@@ -11,6 +11,7 @@ const TOKEN_KEY = 'token'
 const REFRESH_KEY = 'refresh_token'
 const EXPIRES_KEY = 'expires_at'
 const NOTICE_KEY = 'session_notice'
+const AVATAR_KEY = 'avatar_url'
 
 // Token ditukar lebih awal, bukan tepat saat mati, supaya permintaan yang
 // sedang berjalan tidak keburu ditolak di tengah jalan.
@@ -165,6 +166,12 @@ export async function fetchMe() {
   return user
 }
 
+export async function updateProfile(data) {
+  const payload = await kirimTerautentikasi('/auth/me', { method: 'PUT', body: data })
+  localStorage.setItem(USER_KEY, JSON.stringify(payload.data.user))
+  return payload.data.user
+}
+
 export async function requestPasswordReset(email) {
   return lemparKalauGagal(
     await kirim('/auth/forgot-password', { body: { email: email.trim() } }),
@@ -198,6 +205,14 @@ export function getUser() {
   } catch {
     return null
   }
+}
+
+export function getAvatar() {
+  return localStorage.getItem(AVATAR_KEY)
+}
+
+export function saveAvatar(dataUrl) {
+  localStorage.setItem(AVATAR_KEY, dataUrl)
 }
 
 export function isLoggedIn() {

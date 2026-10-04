@@ -7,6 +7,8 @@ import KelolaKuisView from '../views/KelolaKuisView.vue'
 import KuisFormView from '../views/KuisFormView.vue'
 import EditorKuisView from '../views/EditorKuisView.vue'
 import KelolaAkunView from '../views/KelolaAkunView.vue'
+import ProfileView from '../views/ProfileView.vue'
+import EditPhotoView from '../views/EditPhotoView.vue'
 import { ROLE } from '../services/roles'
 import {
   isLoggedIn,
@@ -28,6 +30,8 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'login', component: LoginView, meta: { tamu: true } },
     { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { butuhLogin: true } },
+    { path: '/profil', name: 'profil', component: ProfileView, meta: { butuhLogin: true } },
+    { path: '/profil/edit-foto', name: 'edit-foto', component: EditPhotoView, meta: { butuhLogin: true } },
     { path: '/bab', name: 'kelola-bab', component: KelolaBabView, meta: khususAdmin },
     { path: '/bab/tambah', name: 'tambah-bab', component: BabFormView, meta: khususAdmin },
     { path: '/bab/:id/edit', name: 'edit-bab', component: BabFormView, props: true, meta: khususAdmin },
