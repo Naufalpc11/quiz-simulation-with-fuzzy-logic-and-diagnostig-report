@@ -61,7 +61,15 @@ function keluarUjian() {
 
 function kirimJawaban() {
   if (!window.confirm('Kirim jawaban sekarang? Setelah dikirim, jawaban tidak dapat diubah.')) return
+  const hasil = {
+    judul: kuis.value?.judul || 'Kuis',
+    jawaban: jawaban.value,
+    total: soal.value.length,
+    waktu: waktu.value,
+  }
+  sessionStorage.setItem(`hasil-kuis-${props.id}`, JSON.stringify(hasil))
   submitted.value = true
+  window.setTimeout(() => router.replace(`/kuis/${props.id}/hasil`), 250)
 }
 
 function hitungMundur() {
