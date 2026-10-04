@@ -62,6 +62,9 @@ function soalKosong() {
     // Soal lama tetap membawa nilainya sendiri dari backend.
     targetTime: 60,
     pembahasan: '',
+    // Isian ringkasan tidak ditampilkan lagi. Nilainya tetap dibawa saat menyimpan
+    // karena PUT /kuis/:id/soal mengganti seluruh soal; tanpa ini ringkasan yang
+    // sudah tersimpan akan ikut terhapus.
     ringkasan: '',
   }
 }
@@ -535,16 +538,6 @@ function hapusBerkas() {
                 v-model="soal.pembahasan"
                 rows="4"
                 placeholder="Jelaskan mengapa jawaban tersebut benar."
-                class="border border-wf-border-subtle rounded-md p-4 text-[17px] lg:text-[19px] leading-[26px] placeholder:text-wf-muted focus:outline-none focus:ring-2 focus:ring-wf-brand"
-              ></textarea>
-            </label>
-
-            <label class="flex flex-col gap-2">
-              <span class="text-[15px] leading-5 font-semibold tracking-[1px] text-wf-muted">RINGKASAN</span>
-              <textarea
-                v-model="soal.ringkasan"
-                rows="4"
-                placeholder="Ringkasan materi singkat untuk laporan diagnostik."
                 class="border border-wf-border-subtle rounded-md p-4 text-[17px] lg:text-[19px] leading-[26px] placeholder:text-wf-muted focus:outline-none focus:ring-2 focus:ring-wf-brand"
               ></textarea>
             </label>
