@@ -5,6 +5,7 @@ import babRoute from './routes/babRoute.js';
 import kuisRoute from './routes/kuisRoute.js';
 import soalRoute from './routes/soalRoute.js';
 import mahasiswaRoute from './routes/mahasiswaRoute.js';
+import pengerjaanRoute from './routes/pengerjaanRoute.js';
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -54,6 +55,7 @@ app.use('/api/kuis', kuisRoute);
 app.use('/api/soal', soalRoute);
 app.use('/api/account', accountRoute);
 app.use('/api/mahasiswa', mahasiswaRoute);
+app.use('/api/pengerjaan', pengerjaanRoute);
 
 app.get('/health', async (_, res) => {
   try {

@@ -1,25 +1,30 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ambilKuis, ambilSoalKuis } from '../services/kuis'
-import { getAvatar, getUser, SessionExpiredError } from '../services/auth'
-import logoImage from '../assets/logo-esikap.png'
-import avatarImage from '../assets/icons/avatar.svg'
+import {
+  mulaiPengerjaanKuis,
+  simpanJawabanPengerjaan,
+  submitPengerjaanKuis,
+} from '../services/kuis'
+import { SessionExpiredError } from '../services/auth'
 
 const props = defineProps({ id: { type: String, required: true } })
 const router = useRouter()
-const user = ref(getUser())
-const avatar = ref(getAvatar() || avatarImage)
 const kuis = ref(null)
 const soal = ref([])
 const jawaban = ref({})
+const waktuPerSoal = ref({})
 const ragu = ref(new Set())
 const nomorAktif = ref(0)
-const sisaDetik = ref(40 * 60)
+const sisaDetik = ref(0)
 const loading = ref(true)
 const errorMsg = ref('')
 const submitted = ref(false)
+const submitting = ref(false)
+const idPengerjaan = ref('')
 let timerId
+let waktuMulaiSoal = 0
+let saveQueue = Promise.resolve()
 
 const soalAktif = computed(() => soal.value[nomorAktif.value])
 const terjawab = computed(() => Object.keys(jawaban.value).length)
@@ -33,6 +38,9 @@ const waktu = computed(() => {
 
 function pilihJawaban(indexOpsi) {
   jawaban.value = { ...jawaban.value, [nomorAktif.value]: indexOpsi }
+  catatWaktuSoal(nomorAktif.value)
+  waktuMulaiSoal = Date.now()
+  simpanJawabanKeServer()
 }
 
 function toggleRagu() {
@@ -59,37 +67,111 @@ function keluarUjian() {
   }
 }
 
-function kirimJawaban() {
-  if (!window.confirm('Kirim jawaban sekarang? Setelah dikirim, jawaban tidak dapat diubah.')) return
-  const hasil = {
-    judul: kuis.value?.judul || 'Kuis',
-    jawaban: jawaban.value,
-    total: soal.value.length,
-    waktu: waktu.value,
+function catatWaktuSoal(index) {
+  const question = soal.value[index]
+  if (!question || !waktuMulaiSoal) return
+  const elapsed = Math.max(0, Math.floor((Date.now() - waktuMulaiSoal) / 1000))
+  waktuPerSoal.value = {
+    ...waktuPerSoal.value,
+    [question.idSoal]: (waktuPerSoal.value[question.idSoal] || 0) + elapsed,
   }
-  sessionStorage.setItem(`hasil-kuis-${props.id}`, JSON.stringify(hasil))
-  submitted.value = true
-  window.setTimeout(() => router.replace(`/kuis/${props.id}/hasil`), 250)
+}
+
+function daftarJawaban() {
+  return soal.value.flatMap((question, index) => {
+    const selectedIndex = jawaban.value[index]
+    if (selectedIndex === undefined) return []
+    const option = question.opsi[selectedIndex]
+    if (!option?.idOpsi) return []
+    const elapsed = waktuPerSoal.value[question.idSoal] || 0
+    const activeSeconds = index === nomorAktif.value && waktuMulaiSoal
+      ? Math.max(0, Math.floor((Date.now() - waktuMulaiSoal) / 1000))
+      : 0
+    return [{
+      idSoal: question.idSoal,
+      idOpsi: option.idOpsi,
+      waktuPengerjaan: elapsed + activeSeconds,
+    }]
+  })
+}
+
+function simpanJawabanKeServer() {
+  const answers = daftarJawaban()
+  saveQueue = saveQueue
+    .catch(() => {})
+    .then(() => simpanJawabanPengerjaan(idPengerjaan.value, answers))
+  saveQueue.catch((error) => {
+    errorMsg.value = error.message
+  })
+}
+
+async function kirimJawaban(automatic = false) {
+  if (submitting.value || !idPengerjaan.value) return
+  if (!automatic && !window.confirm('Kirim jawaban sekarang? Setelah dikirim, jawaban tidak dapat diubah.')) return
+
+  submitting.value = true
+  errorMsg.value = ''
+  window.clearInterval(timerId)
+  catatWaktuSoal(nomorAktif.value)
+  waktuMulaiSoal = 0
+  try {
+    await saveQueue.catch(() => {})
+    const result = await submitPengerjaanKuis(idPengerjaan.value, daftarJawaban())
+    submitted.value = true
+    await router.replace({
+      path: `/kuis/${props.id}/hasil`,
+      query: { pengerjaan: result.idPengerjaan },
+    })
+  } catch (error) {
+    if (error instanceof SessionExpiredError) {
+      router.push('/')
+      return
+    }
+    errorMsg.value = error.message
+    submitting.value = false
+    if (sisaDetik.value > 0) {
+      waktuMulaiSoal = Date.now()
+      timerId = window.setInterval(hitungMundur, 1000)
+    }
+  }
 }
 
 function hitungMundur() {
-  if (sisaDetik.value <= 0) {
-    kirimJawaban()
-    return
-  }
-  sisaDetik.value -= 1
+  const elapsed = Math.floor((Date.now() - new Date(waktuMulaiServer.value).getTime()) / 1000)
+  sisaDetik.value = Math.max(0, batasWaktu.value - elapsed)
+  if (sisaDetik.value === 0) void kirimJawaban(true)
 }
+
+const waktuMulaiServer = ref('')
+const batasWaktu = ref(0)
+
+watch(nomorAktif, (_, previousIndex) => {
+  catatWaktuSoal(previousIndex)
+  waktuMulaiSoal = Date.now()
+  simpanJawabanKeServer()
+})
 
 onMounted(async () => {
   try {
-    const [dataKuis, dataSoal] = await Promise.all([
-      ambilKuis(props.id),
-      ambilSoalKuis(props.id),
-    ])
-    kuis.value = dataKuis
-    soal.value = dataSoal
-    sisaDetik.value = Math.max(1, (dataKuis.durasi || 40) * 60)
-    timerId = window.setInterval(hitungMundur, 1000)
+    const data = await mulaiPengerjaanKuis(props.id)
+    idPengerjaan.value = data.pengerjaan.idPengerjaan
+    kuis.value = data.kuis
+    soal.value = data.soal
+    waktuMulaiServer.value = data.pengerjaan.waktuMulai
+    batasWaktu.value = Math.max(1, Number(data.kuis.durasi) || 30) * 60
+
+    const jawabanTersimpan = new Map(data.jawaban.map((answer) => [answer.idSoal, answer]))
+    soal.value.forEach((question, index) => {
+      const saved = jawabanTersimpan.get(question.idSoal)
+      if (!saved) return
+      const optionIndex = question.opsi.findIndex((option) => option.idOpsi === saved.idOpsi)
+      if (optionIndex !== -1) jawaban.value[index] = optionIndex
+      waktuPerSoal.value[question.idSoal] = Number(saved.responseTime) || 0
+    })
+
+    hitungMundur()
+    if (sisaDetik.value > 0) timerId = window.setInterval(hitungMundur, 1000)
+    waktuMulaiSoal = Date.now()
   } catch (err) {
     if (err instanceof SessionExpiredError) {
       router.push('/')
@@ -117,7 +199,7 @@ onBeforeUnmount(() => window.clearInterval(timerId))
             <p class="font-semibold uppercase tracking-[0.08em] text-wf-secondary">Sisa waktu</p>
             <strong class="text-[20px]">{{ waktu }}</strong>
           </div>
-          <button type="button" class="rounded-xl border border-wf-brand-border px-5 py-3 text-[18px] font-semibold text-wf-brand hover:bg-wf-brand-soft" @click="keluarUjian">
+          <button type="button" :disabled="submitting" class="rounded-xl border border-wf-brand-border px-5 py-3 text-[18px] font-semibold text-wf-brand hover:bg-wf-brand-soft disabled:opacity-50" @click="keluarUjian">
             KELUAR UJIAN
           </button>
         </div>
@@ -129,7 +211,10 @@ onBeforeUnmount(() => window.clearInterval(timerId))
 
     <main class="mx-auto max-w-[990px] px-6 pb-12 pt-9 sm:px-10 lg:px-0">
       <p v-if="loading" class="text-wf-secondary">Memuat soal...</p>
-      <p v-else-if="errorMsg" role="alert" class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-wf-no-text">{{ errorMsg }}</p>
+      <div v-else-if="errorMsg" role="alert" class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-wf-no-text">
+        <p>{{ errorMsg }}</p>
+        <button v-if="idPengerjaan" type="button" class="mt-3 font-semibold underline" @click="errorMsg = ''; kirimJawaban(true)">Coba kirim jawaban lagi</button>
+      </div>
       <section v-else-if="submitted" class="rounded-md border border-green-200 bg-green-50 p-8 text-center">
         <h2 class="text-2xl font-bold text-wf-ok">Jawaban berhasil dikirim</h2>
         <p class="mt-2 text-wf-secondary">Hasil pengerjaan akan diproses oleh sistem.</p>
@@ -153,17 +238,17 @@ onBeforeUnmount(() => window.clearInterval(timerId))
               class="flex cursor-pointer items-center gap-4 rounded-md border px-4 py-4 text-[19px] transition"
               :class="jawaban[nomorAktif] === indexOpsi ? 'border-2 border-wf-brand bg-wf-brand-soft' : 'border-wf-border hover:border-wf-brand-border'"
             >
-              <input v-model="jawaban[nomorAktif]" type="radio" :value="indexOpsi" class="size-5 accent-wf-brand" @change="pilihJawaban(indexOpsi)" />
+              <input v-model="jawaban[nomorAktif]" type="radio" :value="indexOpsi" :disabled="submitting" class="size-5 accent-wf-brand" @change="pilihJawaban(indexOpsi)" />
               <span class="font-semibold">{{ String.fromCharCode(65 + indexOpsi) }}</span>
               <span>{{ formatOpsi(opsi.opsi) }}</span>
             </label>
           </div>
           <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-wf-border-subtle pt-5">
-            <button type="button" :disabled="nomorAktif === 0" class="rounded-xl border border-wf-border-subtle px-5 py-3 text-[17px] font-semibold text-wf-secondary disabled:opacity-40" @click="nomorAktif--">← SEBELUMNYA</button>
-            <button type="button" class="rounded-xl border border-wf-brand-border px-5 py-3 text-[17px] font-semibold text-wf-brand hover:bg-wf-brand-soft" @click="toggleRagu">
+            <button type="button" :disabled="nomorAktif === 0 || submitting" class="rounded-xl border border-wf-border-subtle px-5 py-3 text-[17px] font-semibold text-wf-secondary disabled:opacity-40" @click="nomorAktif--">← SEBELUMNYA</button>
+            <button type="button" :disabled="submitting" class="rounded-xl border border-wf-brand-border px-5 py-3 text-[17px] font-semibold text-wf-brand hover:bg-wf-brand-soft disabled:opacity-40" @click="toggleRagu">
               {{ ragu.has(nomorAktif) ? 'HAPUS TANDA RAGU' : 'TANDAI RAGU' }}
             </button>
-            <button type="button" :disabled="nomorAktif === soal.length - 1" class="rounded-xl border border-wf-brand-border px-5 py-3 text-[17px] font-semibold text-wf-brand disabled:opacity-40" @click="nomorAktif++">SELANJUTNYA →</button>
+            <button type="button" :disabled="nomorAktif === soal.length - 1 || submitting" class="rounded-xl border border-wf-brand-border px-5 py-3 text-[17px] font-semibold text-wf-brand disabled:opacity-40" @click="nomorAktif++">SELANJUTNYA →</button>
           </div>
         </article>
 
@@ -197,8 +282,8 @@ onBeforeUnmount(() => window.clearInterval(timerId))
               <p><span class="legend border-wf-border-subtle"></span> Belum dijawab</p>
             </div>
           </div>
-          <button type="button" class="rounded-xl bg-wf-accent px-5 py-4 text-[19px] font-bold text-white hover:bg-wf-accent-hover" @click="kirimJawaban">
-            KIRIM JAWABAN
+          <button type="button" :disabled="submitting" class="rounded-xl bg-wf-accent px-5 py-4 text-[19px] font-bold text-white hover:bg-wf-accent-hover disabled:opacity-60" @click="kirimJawaban()">
+            {{ submitting ? 'MENGIRIM...' : 'KIRIM JAWABAN' }}
           </button>
         </aside>
       </section>

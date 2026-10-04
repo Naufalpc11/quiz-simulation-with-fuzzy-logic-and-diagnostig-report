@@ -17,59 +17,30 @@ const loading = ref(true)
 const errorMsg = ref('')
 const notice = ref('')
 const loggingOut = ref(false)
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
-const contohKuis = [
-  {
-    judul: 'kuis 1: Kata Baku',
-    deskripsi: 'Pengertian, ciri-ciri, dan pemilihan kata baku.',
-    jumlahSoal: 5,
-    durasi: 20,
-    statusBelajar: 'Perlu diulang',
-    nilai: 50,
-  },
-  {
-    judul: 'kuis 2: Imbuhan di- dan Kata Depan di',
-    deskripsi: 'Penulisan serangkai untuk imbuhan, terpisah untuk kata depan.',
-    jumlahSoal: 5,
-    durasi: 20,
-    statusBelajar: 'Selesai',
-    nilai: 100,
-  },
-  {
-    judul: 'kuis 3 : campuran Ejaan',
-    deskripsi: 'Gabungan Tahap 1 dan Tahap 2 dalam satu set soal.',
-    jumlahSoal: 5,
-    durasi: 20,
-    statusBelajar: 'Selesai',
-    nilai: 80,
-  },
-]
+const daftarKuis = computed(() => kuis.value)
 
-const daftarKuis = computed(() => kuis.value.length ? kuis.value : contohKuis)
-
-function statusKuis(item, index) {
-  if (item.statusBelajar) return item.statusBelajar
-  return index === 0 ? 'Perlu diulang' : 'Selesai'
+function statusKuis(item) {
+  return item.statusBelajar || 'Tersedia'
 }
 
 function statusKelas(status) {
-  return status === 'Perlu diulang'
-    ? 'bg-wf-no text-white'
-    : 'bg-wf-ok text-white'
+  return status === 'Perlu diulang' ? 'bg-wf-no text-white' : 'bg-wf-ok text-white'
 }
 
 function ulangi(item) {
-  if (item.idKuis) {
+  if (typeof item.idKuis === 'string' && UUID_PATTERN.test(item.idKuis)) {
     router.push(`/kuis/${item.idKuis}/kerjakan`)
     return
   }
-  notice.value = `Latihan "${item.judul}" belum memiliki ID kuis dari server.`
+  notice.value = `Kuis "${item.judul}" belum memiliki ID UUID yang valid dari server.`
 }
 
 function formatRingkasan() {
   const jumlah = daftarKuis.value.length
   const soal = daftarKuis.value.reduce((sum, item) => sum + (item.jumlahSoal || 0), 0)
-  return `${jumlah} latihan · 1 ujian · ${soal} soal · dibuka oleh ${bab.value?.dibuatOlehNama || 'Guru'}`
+  return `${jumlah} kuis · ${soal} soal · dibuka oleh ${bab.value?.dibuatOlehNama || 'Guru'}`
 }
 
 async function handleLogout() {
@@ -136,6 +107,9 @@ onMounted(async () => {
           {{ notice }}
         </p>
         <section class="mt-6 flex flex-col gap-5">
+          <p v-if="!daftarKuis.length" class="rounded-md border border-wf-border-subtle bg-wf-card p-6 text-wf-secondary">
+            Belum ada kuis yang tersedia di bab ini.
+          </p>
           <article
             v-for="(item, index) in daftarKuis"
             :key="item.idKuis || item.judul"
@@ -148,18 +122,18 @@ onMounted(async () => {
                 <h2 class="mt-2 text-[20px] font-bold">{{ item.judul }}</h2>
                 <p class="mt-1 text-[16px] text-wf-secondary">{{ item.deskripsi || 'Latihan pilihan ganda untuk menguji pemahaman materi.' }}</p>
                 <p class="mt-2 font-mono text-[13px] uppercase tracking-[0.1em] text-wf-muted">
-                  {{ item.jumlahSoal || 0 }} soal · bobot 100 poin · durasi {{ item.durasi || 20 }} menit
+                  {{ item.jumlahSoal || 0 }} soal · bobot 100 poin · durasi {{ item.durasi ?? '—' }} menit
                 </p>
               </div>
               <div class="flex items-center gap-5">
                 <div class="text-right">
-                  <span class="rounded-md px-2 py-1 text-[16px] font-semibold" :class="statusKelas(statusKuis(item, index))">
-                    {{ statusKuis(item, index) }}
+                  <span class="rounded-md px-2 py-1 text-[16px] font-semibold" :class="statusKelas(statusKuis(item))">
+                    {{ statusKuis(item) }}
                   </span>
-                  <p class="mt-3 font-mono text-[13px] text-wf-secondary">Nilai terakhir {{ item.nilai ?? '—' }}</p>
+                  <p class="mt-3 font-mono text-[13px] text-wf-secondary">Nilai terakhir —</p>
                 </div>
                 <button type="button" class="rounded-xl border border-wf-brand-border px-5 py-4 text-[20px] font-semibold text-wf-brand hover:bg-wf-brand-soft" @click="ulangi(item)">
-                  ULANGI
+                  MULAI
                 </button>
               </div>
             </div>

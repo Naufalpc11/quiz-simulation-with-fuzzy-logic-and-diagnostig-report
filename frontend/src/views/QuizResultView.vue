@@ -1,41 +1,74 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { ambilKuis, ambilSoalKuis } from '../services/kuis'
-import { getAvatar, getUser, SessionExpiredError } from '../services/auth'
-import logoImage from '../assets/logo-esikap.png'
-import avatarImage from '../assets/icons/avatar.svg'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  ambilHasilPengerjaan,
+  ambilPembahasanPengerjaan,
+  ambilKuis,
+} from '../services/kuis'
+import { SessionExpiredError } from '../services/auth'
 
 const props = defineProps({ id: { type: String, required: true } })
 const router = useRouter()
-const user = ref(getUser())
-const avatar = ref(getAvatar() || avatarImage)
+const route = useRoute()
 const kuis = ref(null)
-const soal = ref([])
 const hasil = ref(null)
+const pembahasan = ref([])
 const loading = ref(true)
+const loadingPembahasan = ref(false)
+const tampilPembahasan = ref(false)
 const errorMsg = ref('')
+const errorPembahasan = ref('')
 
-const total = computed(() => hasil.value?.total || soal.value.length || 5)
-const benar = computed(() => Math.max(0, total.value - salah.value))
-const salah = computed(() => total.value > 1 ? 1 : 0)
-const nilai = computed(() => total.value ? Math.round((benar.value / total.value) * 100) : 0)
-const waktu = computed(() => hasil.value?.waktu?.replace(/^00:/, '') || '04:02')
+const total = computed(() => hasil.value?.totalSoal ?? 0)
+const benar = computed(() => hasil.value?.totalBenar ?? 0)
+const salah = computed(() => hasil.value?.totalSalah ?? 0)
+const nilai = computed(() => Math.round(Number(hasil.value?.akurasi) || 0))
+const waktu = computed(() => {
+  const seconds = Number(hasil.value?.waktuPengerjaan) || 0
+  const minutes = Math.floor(seconds / 60).toString().padStart(2, '0')
+  return `${minutes}:${(seconds % 60).toString().padStart(2, '0')}`
+})
 
 function statusSoal(index) {
-  return index === 0 && salah.value > 0 ? 'Belum tepat' : 'Tepat'
+  return hasil.value?.detailItems?.[index]?.meta?.isCorrect ? 'Tepat' : 'Belum tepat'
 }
 
 function ulangi() {
   router.push(`/kuis/${props.id}/kerjakan`)
 }
 
+async function togglePembahasan() {
+  tampilPembahasan.value = !tampilPembahasan.value
+  if (!tampilPembahasan.value || pembahasan.value.length) return
+
+  loadingPembahasan.value = true
+  errorPembahasan.value = ''
+  try {
+    pembahasan.value = await ambilPembahasanPengerjaan(route.query.pengerjaan)
+  } catch (error) {
+    if (error instanceof SessionExpiredError) {
+      router.push('/')
+      return
+    }
+    errorPembahasan.value = error.message
+  } finally {
+    loadingPembahasan.value = false
+  }
+}
+
 onMounted(async () => {
   try {
-    hasil.value = JSON.parse(sessionStorage.getItem(`hasil-kuis-${props.id}`) || 'null')
-    const [dataKuis, dataSoal] = await Promise.all([ambilKuis(props.id), ambilSoalKuis(props.id)])
+    const idPengerjaan = route.query.pengerjaan
+    if (typeof idPengerjaan !== 'string' || !idPengerjaan) {
+      throw new Error('ID pengerjaan tidak tersedia. Mulai kuis melalui halaman latihan.')
+    }
+    const [dataHasil, dataKuis] = await Promise.all([
+      ambilHasilPengerjaan(idPengerjaan),
+      ambilKuis(props.id),
+    ])
+    hasil.value = dataHasil
     kuis.value = dataKuis
-    soal.value = dataSoal
   } catch (err) {
     if (err instanceof SessionExpiredError) {
       router.push('/')
@@ -54,7 +87,7 @@ onMounted(async () => {
       <div class="mx-auto flex max-w-[1140px] items-center justify-between gap-5 px-6 py-5 sm:px-10">
         <div>
           <p class="font-semibold uppercase tracking-[0.08em] text-wf-secondary">Bahasa Indonesia · Bab 1</p>
-          <h1 class="mt-2 text-[21px] font-bold">{{ kuis?.judul || hasil?.judul || 'Kuis' }}</h1>
+          <h1 class="mt-2 text-[21px] font-bold">{{ kuis?.judul || 'Kuis' }}</h1>
         </div>
         <button type="button" class="rounded-xl border border-wf-brand-border px-5 py-3 text-[18px] font-semibold text-wf-brand hover:bg-wf-brand-soft" @click="router.back()">
           KELUAR LATIHAN
@@ -74,21 +107,42 @@ onMounted(async () => {
           <div class="result-stat"><strong>{{ salah }}</strong><span>SALAH</span></div>
           <div class="result-stat"><strong>{{ waktu }}</strong><span>WAKTU</span></div>
         </section>
+        <section class="mt-4 rounded-md border border-wf-border-subtle bg-wf-card p-5">
+          <p><strong>Skor fuzzy:</strong> {{ hasil.skorFuzzy }} ({{ hasil.kategoriFuzzy }})</p>
+          <p v-if="hasil.rekomendasi" class="mt-2 text-wf-secondary">{{ hasil.rekomendasi }}</p>
+        </section>
 
         <section class="mt-5 rounded-md border border-wf-border-subtle bg-wf-card p-5">
           <h2 class="font-mono text-[13px] uppercase tracking-[0.12em] text-wf-secondary">Hasil tiap soal</h2>
           <div class="mt-4 flex flex-col gap-3">
-            <div v-for="(item, index) in (soal.length ? soal : Array.from({ length: total }))" :key="item?.idSoal || index" class="flex items-center justify-between rounded-md border border-wf-border-subtle px-4 py-3">
-              <span class="text-[16px]"><b :class="statusSoal(index) === 'Tepat' ? 'text-wf-ok' : 'text-wf-no'">{{ statusSoal(index) === 'Tepat' ? '✓' : '×' }}</b><span class="ml-3">{{ index + 1 }}. {{ item?.pertanyaan ? `Soal ${index + 1}` : `Soal ${index + 1}` }}</span></span>
+            <div v-for="(item, index) in hasil.detailItems" :key="item.soalId || index" class="flex items-center justify-between rounded-md border border-wf-border-subtle px-4 py-3">
+              <span class="text-[16px]"><b :class="statusSoal(index) === 'Tepat' ? 'text-wf-ok' : 'text-wf-no'">{{ statusSoal(index) === 'Tepat' ? '✓' : '×' }}</b><span class="ml-3">{{ index + 1 }}. {{ item.linguisticLevel }} · {{ item.crispScore }}</span></span>
               <strong class="text-sm" :class="statusSoal(index) === 'Tepat' ? 'text-wf-ok' : 'text-wf-no-text'">{{ statusSoal(index) }}</strong>
             </div>
           </div>
         </section>
 
         <div class="mt-5 flex flex-wrap gap-3">
-          <button type="button" class="rounded-xl border border-wf-accent-light px-4 py-3 font-semibold text-wf-brand hover:bg-wf-brand-soft">BUKA PEMBAHASAN SEMUA SOAL</button>
+          <button type="button" class="rounded-xl border border-wf-accent-light px-4 py-3 font-semibold text-wf-brand hover:bg-wf-brand-soft" @click="togglePembahasan">
+            {{ loadingPembahasan ? 'MEMUAT...' : tampilPembahasan ? 'SEMBUNYIKAN PEMBAHASAN' : 'BUKA PEMBAHASAN SEMUA SOAL' }}
+          </button>
           <button type="button" class="rounded-xl border border-wf-accent-light px-4 py-3 font-semibold text-wf-brand hover:bg-wf-brand-soft">STATISTIK →</button>
         </div>
+        <p v-if="errorPembahasan" role="alert" class="mt-3 text-sm text-red-700">{{ errorPembahasan }}</p>
+        <section v-if="tampilPembahasan" class="mt-4 flex flex-col gap-4">
+          <article v-for="item in pembahasan" :key="item.idSoal" class="rounded-md border border-wf-border-subtle bg-wf-card p-5">
+            <h2 class="font-semibold">{{ item.nomorSoal }}. {{ item.pertanyaan }}</h2>
+            <ul class="mt-3 flex flex-col gap-2">
+              <li v-for="option in item.opsi" :key="option.idOpsi" :class="option.isCorrect ? 'font-semibold text-green-700' : option.dipilih ? 'text-red-700' : 'text-wf-secondary'">
+                {{ option.isCorrect ? '✓ ' : option.dipilih ? '× ' : '' }}{{ option.opsi }}
+                <span v-if="option.dipilih">(jawabanmu)</span>
+                <span v-if="option.isCorrect">(jawaban benar)</span>
+              </li>
+            </ul>
+            <p v-if="item.pembahasan" class="mt-4">{{ item.pembahasan }}</p>
+            <p v-if="item.ringkasan" class="mt-2 text-sm text-wf-secondary">{{ item.ringkasan }}</p>
+          </article>
+        </section>
         <div class="mt-3 flex flex-wrap justify-between gap-3">
           <button type="button" class="rounded-xl border border-wf-brand-border px-4 py-3 font-semibold text-wf-brand hover:bg-wf-brand-soft" @click="ulangi">ULANGI BAB INI</button>
           <RouterLink to="/dashboard" class="rounded-xl bg-wf-accent px-5 py-3 font-semibold text-white hover:bg-wf-accent-hover">BAB BERIKUTNYA: TANDA BACA →</RouterLink>

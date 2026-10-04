@@ -18,6 +18,8 @@ const PDF_PATH = "C:/Users/USER/Downloads/Tes Diagnostik Ejaan dan Tanda Baca un
 const START_PAGE = 55;
 const END_PAGE = 103;
 const UPLOAD_TO_SUPABASE = process.env.UPLOAD_TO_SUPABASE !== 'false'; // Langsung masukkan ke database Supabase
+const ID_KUIS = process.env.ID_KUIS?.trim();
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 // ===============================================
 
 // Helper membersihkan spasi dan baris baru
@@ -136,6 +138,10 @@ function parseSoal(fullText) {
 // Fungsi utama
 async function main() {
   try {
+    if (UPLOAD_TO_SUPABASE && !UUID_PATTERN.test(ID_KUIS || '')) {
+      throw new Error('Atur ID_KUIS dengan UUID kuis yang valid sebelum mengunggah soal.');
+    }
+
     console.log(`🔍 Membaca PDF: ${PDF_PATH}`);
     console.log(`📄 Mengekstrak halaman ${START_PAGE} sampai ${END_PAGE}...`);
 
@@ -155,11 +161,17 @@ async function main() {
       console.log('🚀 Mulai upload ke database Supabase...');
 
       for (const item of daftarSoal) {
+        if (item.opsi_jawaban.filter((opsi) => opsi.isCorrect).length !== 1) {
+          console.error(`❌ Soal No. ${item.nomor} dilewati: harus memiliki tepat satu kunci jawaban.`);
+          continue;
+        }
+
         // Insert ke tabel Soal
         const { data: soalData, error: errSoal } = await supabaseAdmin
           .from('Soal')
           .insert({
-            idKuis: null, // Sesuai permintaan, dibuat null terlebih dahulu
+            idKuis: ID_KUIS,
+            urutan: item.nomor,
             pertanyaan: item.pertanyaan,
             difficulty: item.difficulty,
             poin: item.poin,
@@ -185,7 +197,7 @@ async function main() {
 
         if (payloadOpsi.length > 0) {
           const { error: errOpsi } = await supabaseAdmin
-            .from('Opsi Jawaban')
+            .from('OpsiJawaban')
             .insert(payloadOpsi);
 
           if (errOpsi) {

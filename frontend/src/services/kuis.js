@@ -106,3 +106,43 @@ export async function simpanSoalKuis(idKuis, daftarSoal) {
   })
   return payload.data
 }
+
+// ── Pengerjaan kuis mahasiswa ──
+
+export async function mulaiPengerjaanKuis(idKuis) {
+  const payload = await panggil('/pengerjaan', {
+    method: 'POST',
+    body: { idKuis },
+  })
+  return payload.data
+}
+
+export async function simpanJawabanPengerjaan(idPengerjaan, jawaban) {
+  const payload = await panggil(`/pengerjaan/${encodeURIComponent(idPengerjaan)}/jawaban`, {
+    method: 'PUT',
+    body: { jawaban },
+  })
+  return payload.data
+}
+
+export async function submitPengerjaanKuis(idPengerjaan, jawaban) {
+  const payload = await panggil(`/pengerjaan/${encodeURIComponent(idPengerjaan)}/submit`, {
+    method: 'POST',
+    body: { jawaban },
+  })
+  return payload.data
+}
+
+export async function ambilHasilPengerjaan(idPengerjaan) {
+  const payload = await panggil(`/pengerjaan/${encodeURIComponent(idPengerjaan)}`, {
+    method: 'GET',
+  })
+  return payload.data
+}
+
+export async function ambilPembahasanPengerjaan(idPengerjaan) {
+  const payload = await panggil(`/pengerjaan/${encodeURIComponent(idPengerjaan)}/pembahasan`, {
+    method: 'GET',
+  })
+  return payload.data
+}
