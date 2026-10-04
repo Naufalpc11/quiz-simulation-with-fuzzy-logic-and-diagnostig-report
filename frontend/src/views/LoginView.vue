@@ -2,7 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { login, requestPasswordReset, saveSession, setNotice, takeNotice, halamanAwal } from '../services/auth'
-import bgImage from '../assets/bg.jpg'
+// Foto latar sama dengan halaman reset password (backend/templates/background-itk.jpg.jpeg).
+import bgImage from '../assets/background-itk.jpg'
 import logoImage from '../assets/logo-esikap.png'
 
 const router = useRouter()
@@ -68,7 +69,6 @@ async function handleForgotPassword() {
     class="min-h-screen w-full flex items-center justify-center bg-cover bg-center relative px-4 py-10"
     :style="{ backgroundImage: `url(${bgImage})` }"
   >
-    <div class="absolute inset-0 bg-black/40"></div>
 
     <div class="relative z-10 w-full max-w-md">
       <img :src="logoImage" alt="eSikap" class="mx-auto mb-6 h-10 w-[125px] object-contain" />
@@ -153,7 +153,8 @@ async function handleForgotPassword() {
         </button>
       </div>
 
-      <p class="text-center text-xs text-white/80 mt-6">
+      <!-- Tanpa lapisan gelap, bayangan tipis menjaga teks putih tetap terbaca di foto terang. -->
+      <p class="text-center text-xs text-white mt-6 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]">
         &copy; {{ new Date().getFullYear() }} Quiz Simulation
       </p>
     </div>
