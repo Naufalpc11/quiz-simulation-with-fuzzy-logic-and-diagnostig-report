@@ -1,6 +1,7 @@
 import express from 'express';
 import {
-    login, logout, refresh, me, updateMe, resetPasswordPage, resetPasswordBackground, forgotPassword, resetPassword
+    login, logout, refresh, me, updateMe, resetPasswordPage,
+    forgotPassword, resetPassword, resetPasswordBackground
 } from '../controllers/AuthController.js';
 import { verifyLoggedIn } from '../middleware/verifyLoggedIn.js';
 import {

@@ -80,7 +80,7 @@ const PORT = process.env.PORT || 3000;
 const NETWORK_IP = '192.168.100.56';
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log('Server RivNet Backend berjalan di:');
+  console.log('Server eKuis Backend berjalan di:');
   console.log(`- Local: http://localhost:${PORT}`);
   console.log(`- Network/HP: http://${NETWORK_IP}:${PORT}`);
 });
