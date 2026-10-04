@@ -9,6 +9,7 @@ import EditorKuisView from '../views/EditorKuisView.vue'
 import KelolaAkunView from '../views/KelolaAkunView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import EditPhotoView from '../views/EditPhotoView.vue'
+import StudentBabView from '../views/StudentBabView.vue'
 import { ROLE } from '../services/roles'
 import {
   isLoggedIn,
@@ -32,6 +33,7 @@ const router = createRouter({
     { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { butuhLogin: true } },
     { path: '/profil', name: 'profil', component: ProfileView, meta: { butuhLogin: true } },
     { path: '/profil/edit-foto', name: 'edit-foto', component: EditPhotoView, meta: { butuhLogin: true } },
+    { path: '/latihan/:id', name: 'latihan-bab', component: StudentBabView, props: true, meta: { butuhLogin: true } },
     { path: '/bab', name: 'kelola-bab', component: KelolaBabView, meta: khususAdmin },
     { path: '/bab/tambah', name: 'tambah-bab', component: BabFormView, meta: khususAdmin },
     { path: '/bab/:id/edit', name: 'edit-bab', component: BabFormView, props: true, meta: khususAdmin },

@@ -74,7 +74,11 @@ function persentase(item) {
 }
 
 function bukaBab(item) {
-  notice.value = `Latihan ${item.namaBab} akan segera tersedia.`
+  if (item.idBab) {
+    router.push(`/latihan/${item.idBab}`)
+    return
+  }
+  notice.value = `Latihan ${item.namaBab} belum memiliki ID bab dari server.`
 }
 
 async function handleLogout() {
