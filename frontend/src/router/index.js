@@ -12,6 +12,7 @@ import EditPhotoView from '../views/EditPhotoView.vue'
 import StudentBabView from '../views/StudentBabView.vue'
 import StudentQuizView from '../views/StudentQuizView.vue'
 import QuizResultView from '../views/QuizResultView.vue'
+import StudentStatisticsView from '../views/StudentStatisticsView.vue'
 import { ROLE } from '../services/roles'
 import {
   isLoggedIn,
@@ -33,6 +34,7 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'login', component: LoginView, meta: { tamu: true } },
     { path: '/dashboard', name: 'dashboard', component: DashboardView, meta: { butuhLogin: true } },
+    { path: '/statistik', name: 'statistik', component: StudentStatisticsView, meta: { butuhLogin: true } },
     { path: '/profil', name: 'profil', component: ProfileView, meta: { butuhLogin: true } },
     { path: '/profil/edit-foto', name: 'edit-foto', component: EditPhotoView, meta: { butuhLogin: true } },
     { path: '/latihan/:id', name: 'latihan-bab', component: StudentBabView, props: true, meta: { butuhLogin: true } },
