@@ -5,6 +5,7 @@ import { getUser, keluar, halamanAwal } from '../services/auth'
 import { ROLE } from '../services/roles'
 import logoImage from '../assets/logo-esikap.png'
 import avatarImage from '../assets/icons/avatar.svg'
+import logOutIcon from '../assets/icons/log-out.svg'
 
 const route = useRoute()
 const router = useRouter()
@@ -64,13 +65,16 @@ async function handleLogout() {
         {{ user?.role ?? 'Admin' }}<span v-if="user?.nama"> · {{ user.nama }}</span>
       </p>
       <img :src="avatarImage" alt="" class="size-8 shrink-0" />
+      <!-- Ikon Lucide "log-out" (set ikon yang sama dengan ikon lain di Figma). -->
       <button
         type="button"
         @click="handleLogout"
         :disabled="loggingOut"
-        class="text-[15px] text-wf-no-text hover:underline disabled:opacity-60"
+        :aria-label="loggingOut ? 'Sedang keluar' : 'Keluar'"
+        :title="loggingOut ? 'Sedang keluar...' : 'Keluar'"
+        class="flex size-10 shrink-0 items-center justify-center rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-wf-no-border disabled:opacity-60 disabled:cursor-wait"
       >
-        {{ loggingOut ? 'Keluar...' : 'Keluar' }}
+        <span class="size-6"><img :src="logOutIcon" alt="" class="size-full" /></span>
       </button>
     </div>
   </header>
