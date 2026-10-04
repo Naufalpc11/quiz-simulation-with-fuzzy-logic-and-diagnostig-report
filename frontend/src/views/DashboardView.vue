@@ -15,19 +15,22 @@ const errorMsg = ref('')
 const notice = ref('')
 const loggingOut = ref(false)
 const profileOpen = ref(false)
+const kataPencarian = ref('')
+const filterAktif = ref('semua')
 
 const contohBab = [
-  { namaBab: 'Ejaan', kataKunci: 'ejaan', deskripsi: 'Kata baku, imbuhan di-, dan kata depan di.', selesai: 2, total: 2 },
-  { namaBab: 'Tanda Baca', kataKunci: 'tanda baca', deskripsi: 'Koma, titik dua, tanda hubung, dan kutipan.', selesai: 1, total: 2 },
-  { namaBab: 'Paragraf', kataKunci: 'paragraf', deskripsi: 'Kepaduan, pola pengembangan, dan kalimat topik.', selesai: 0, total: 2 },
-  { namaBab: 'Kalimat Efektif', kataKunci: 'kalimat efektif', deskripsi: 'Kehematan, kesepadanan, kesejajaran, dan kelogisan.', selesai: 2, total: 2 },
+  { namaBab: 'Tanda Baca', kataKunci: 'tanda baca', deskripsi: 'Materi tanda baca', selesai: 1, total: 2 },
+  { namaBab: 'Ejaan', kataKunci: 'ejaan', deskripsi: 'Materi tentang Ejaan Bahasa', selesai: 2, total: 2 },
+  { namaBab: 'Kalimat Efektif', kataKunci: 'kalimat efektif', deskripsi: 'Materi kalimat efektif', selesai: 2, total: 2 },
+  { namaBab: 'Bab 5', kataKunci: 'bab 5', deskripsi: 'Materi kalimat efektif level 2', selesai: 0, total: 0 },
+  { namaBab: 'Kalimat Efektif level 2', kataKunci: 'kalimat efektif level 2', deskripsi: 'Materi kalimat efektif level 2', selesai: 2, total: 2 },
 ]
 
 const daftarBab = computed(() => {
-  if (!bab.value.length) return contohBab
+  const sumber = bab.value.length ? bab.value : contohBab
 
   const sudahAda = new Set()
-  return [...bab.value]
+  return [...sumber]
     .sort((a, b) => (a.urutanBab ?? 0) - (b.urutanBab ?? 0))
     .filter((item) => {
       if (item.idBab && sudahAda.has(item.idBab)) return false
@@ -46,7 +49,21 @@ const daftarBab = computed(() => {
     })
 })
 
+const babTersaring = computed(() => {
+  const kata = kataPencarian.value.trim().toLowerCase()
+  return daftarBab.value.filter((item) => {
+    const cocokNama = !kata || `${item.namaBab} ${item.deskripsi}`.toLowerCase().includes(kata)
+    const selesai = persentase(item) === 100
+    const sedangBerjalan = persentase(item) > 0 && !selesai
+    const cocokFilter = filterAktif.value === 'semua'
+      || (filterAktif.value === 'selesai' && selesai)
+      || (filterAktif.value === 'berjalan' && sedangBerjalan)
+    return cocokNama && cocokFilter
+  })
+})
+
 function statusBab(item) {
+  if (item.selesai === 0 && item.total === 0) return { label: 'Belum mulai', kelas: 'bg-wf-no text-white' }
   if (item.selesai === item.total) return { label: 'Selesai', kelas: 'bg-wf-ok text-white' }
   if (item.selesai > 0) return { label: 'Sedang', kelas: 'bg-wf-accent-light text-wf-text border border-wf-accent' }
   return { label: 'Belum mulai', kelas: 'bg-wf-no text-white' }
@@ -153,13 +170,49 @@ onMounted(async () => {
 
     <main class="mx-auto max-w-[1200px] px-6 pb-12 pt-9 sm:px-10 lg:px-0">
       <section class="mb-5">
-        <h1 class="text-[24px] font-bold leading-tight sm:text-[26px]">
-          Halo, {{ user?.nama || 'Mahasiswa' }}! Lanjutkan belajarmu
-        </h1>
+        <h1 class="text-[24px] font-bold leading-tight sm:text-[26px]">Latihan</h1>
         <p class="mt-2 text-[16px] leading-6 text-wf-secondary sm:text-[17px]">
-          Pilih bab untuk melihat daftar latihan di dalamnya. Tiap latihan berisi beberapa soal pilihan ganda.
+          Pilih bab yang anda ingin kerjakan. Kemudian satu bab bisa terdiri dari beberapa kuis yang bisa di kerjakan.
         </p>
       </section>
+
+      <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <label class="relative min-w-0 flex-1">
+          <span class="sr-only">Cari mata kuliah atau bab</span>
+          <input
+            v-model="kataPencarian"
+            type="search"
+            placeholder="Cari mata kuliah atau bab..."
+            class="w-full rounded-md border border-wf-border-subtle bg-wf-card px-3 py-3 text-[15px] text-wf-text outline-none placeholder:text-wf-muted focus:border-wf-brand focus:ring-2 focus:ring-wf-brand/20"
+          />
+        </label>
+        <div class="flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="rounded-md border px-3 py-1.5 text-[15px] font-semibold transition"
+            :class="filterAktif === 'semua' ? 'border-wf-brand-border bg-wf-brand-soft text-wf-text' : 'border-wf-border-subtle bg-wf-card text-wf-secondary hover:text-wf-text'"
+            @click="filterAktif = 'semua'"
+          >
+            Semua
+          </button>
+          <button
+            type="button"
+            class="rounded-md border px-3 py-1.5 text-[15px] font-semibold transition"
+            :class="filterAktif === 'berjalan' ? 'border-wf-accent bg-wf-accent-light text-wf-text' : 'border-wf-border-subtle bg-wf-card text-wf-secondary hover:text-wf-text'"
+            @click="filterAktif = 'berjalan'"
+          >
+            Sedang berjalan
+          </button>
+          <button
+            type="button"
+            class="rounded-md border px-3 py-1.5 text-[15px] font-semibold transition"
+            :class="filterAktif === 'selesai' ? 'border-wf-ok bg-green-50 text-wf-ok' : 'border-wf-border-subtle bg-wf-card text-wf-secondary hover:text-wf-text'"
+            @click="filterAktif = 'selesai'"
+          >
+            Selesai
+          </button>
+        </div>
+      </div>
 
       <p v-if="notice" role="status" class="mb-5 rounded-lg border border-wf-brand-border bg-wf-brand-soft px-4 py-3 text-sm text-wf-brand">
         {{ notice }}
@@ -169,15 +222,15 @@ onMounted(async () => {
       </p>
       <p v-if="loading" class="py-8 text-center text-wf-secondary">Memuat daftar bab...</p>
 
-      <section v-else class="grid gap-5 md:grid-cols-2">
+      <section v-else-if="babTersaring.length" class="grid gap-5 md:grid-cols-2">
         <article
-          v-for="(item, index) in daftarBab"
+          v-for="(item, index) in babTersaring"
           :key="item.idBab || item.namaBab"
           class="rounded-md border border-wf-border-subtle bg-wf-card p-5 shadow-[0_1px_2px_rgba(27,25,48,0.02)] sm:p-5"
         >
           <div class="flex items-start justify-between gap-4">
             <span class="font-mono text-[13px] uppercase tracking-[0.12em] text-wf-secondary">
-              Bab {{ index + 1 }}
+              Bab {{ daftarBab.indexOf(item) + 1 }}
             </span>
             <span class="rounded-md px-2 py-1 text-[14px] font-semibold leading-5" :class="statusBab(item).kelas">
               {{ statusBab(item).label }}
@@ -204,6 +257,9 @@ onMounted(async () => {
           </button>
         </article>
       </section>
+      <p v-else class="rounded-md border border-wf-border-subtle bg-wf-card px-5 py-8 text-center text-wf-secondary">
+        Tidak ada bab yang sesuai dengan pencarian atau filter.
+      </p>
     </main>
   </div>
 </template>
