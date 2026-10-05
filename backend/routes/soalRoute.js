@@ -8,8 +8,9 @@ import { verifyAdmin } from '../middleware/verifyAdmin.js';
 
 const router = express.Router();
 
-router.get('/', verifyLoggedIn, getAllSoal);
-router.get('/:id', verifyLoggedIn, getSoalById);
+// Khusus dosen: mahasiswa mendapat soal lewat POST /api/pengerjaan setelah lolos PIN
+router.get('/', verifyLoggedIn, verifyAdmin, getAllSoal);
+router.get('/:id', verifyLoggedIn, verifyAdmin, getSoalById);
 router.post('/', verifyLoggedIn, verifyAdmin, createSoal);
 router.put('/:id', verifyLoggedIn, verifyAdmin, updateSoal);
 router.delete('/:id', verifyLoggedIn, verifyAdmin, deleteSoal);

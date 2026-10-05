@@ -47,12 +47,44 @@ angka atau `null`.
 `POST /api/pengerjaan`
 
 ```json
-{ "idKuis": "5a44ab47-a51b-40f1-a904-fc3f0ed4f287" }
+{ "idKuis": "5a44ab47-a51b-40f1-a904-fc3f0ed4f287", "pin": "0420" }
 ```
 
 Membuat attempt baru atau melanjutkan attempt berstatus `berlangsung` untuk
 mahasiswa dan kuis yang sama. Respons berisi objek `pengerjaan`, metadata `kuis`,
 soal dengan opsi tanpa kunci jawaban, dan jawaban tersimpan untuk pemulihan sesi.
+
+### PIN kuis
+
+Attempt **baru** wajib menyertakan `pin` yang dibuat dosen pemilik kuis. Melanjutkan
+attempt yang masih `berlangsung` tidak perlu PIN. Alur yang disarankan di frontend:
+panggil tanpa `pin` dulu; kalau balasannya `PIN_DIBUTUHKAN`, tampilkan isian PIN lalu
+panggil ulang dengan `pin`.
+
+| Status | `code` | Arti |
+|---|---|---|
+| 403 | `PIN_DIBUTUHKAN` | Belum ada attempt aktif, kirim ulang dengan `pin` |
+| 403 | `PIN_SALAH` | PIN tidak cocok |
+| 403 | `KUIS_BELUM_DIBUKA` | Dosen belum mengatur PIN, kuis belum bisa dikerjakan |
+| 429 | - | 10 PIN salah dalam 15 menit; tunggu 15 menit |
+
+Soal hanya bisa didapat mahasiswa lewat endpoint ini. `GET /api/kuis/:idKuis/soal`
+dan `GET /api/soal` sekarang khusus dosen (Admin).
+
+## Bab dan kuis (dosen)
+
+Jalankan [`migrations/20261005_bab_bersama_pin_kuis.sql`](./migrations/20261005_bab_bersama_pin_kuis.sql)
+terlebih dahulu.
+
+- **Bab dipakai bersama.** Semua dosen bisa membuat, mengubah, dan menghapus bab.
+  Nama bab unik tanpa membedakan huruf besar/kecil (409 kalau dobel). Bab hanya bisa
+  dihapus kalau tidak ada kuis di dalamnya (409).
+- **Kuis milik pembuatnya.** Hanya dosen pembuat yang bisa mengubah/menghapus kuis dan
+  soalnya. Kalau akun pembuat dihapus, kuis bisa dikelola dosen mana pun.
+- `POST/PUT /api/kuis` menerima `pin` berupa **teks** 4–8 digit (`"0420"`). Opsional saat
+  membuat; `"pin": null` saat update menutup kuis dari attempt baru.
+- Setiap kuis di `GET /api/kuis` berisi `namaPembuat`, `adaPin`, dan `bisaDikelola`.
+  Field `pin` hanya muncul untuk dosen yang `bisaDikelola`.
 
 ## Simpan jawaban
 

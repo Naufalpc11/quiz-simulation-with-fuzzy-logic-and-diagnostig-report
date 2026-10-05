@@ -38,6 +38,21 @@ export const batasLoginPerAkun = rateLimit({
   handler: tolak('Terlalu banyak percobaan login untuk akun ini. Coba lagi dalam 15 menit atau gunakan Lupa Password.'),
 });
 
+// Menahan tebakan PIN kuis. Wajib dipasang SETELAH verifyLoggedIn karena kuncinya
+// akun mahasiswa: PIN 4 digit hanya punya 10.000 kemungkinan.
+// Hanya PIN salah yang dihitung (ditandai controller lewat res.locals.pinSalah), jadi
+// melanjutkan attempt atau permintaan pertama tanpa PIN tidak menghabiskan jatah.
+export const batasPinKuis = rateLimit({
+  windowMs: 15 * MENIT,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  keyGenerator: (req) => `pin:${req.currentUser?.id ?? ipKeyGenerator(req.ip)}`,
+  requestWasSuccessful: (req, res) => !res.locals.pinSalah,
+  skipSuccessfulRequests: true,
+  handler: tolak('Terlalu banyak percobaan PIN. Coba lagi dalam 15 menit.'),
+});
+
 // Supabase sendiri membatasi pengiriman email 1 jam sekali. Batas ini menahan
 // permintaannya lebih awal supaya tidak menghabiskan kuota email proyek.
 export const batasLupaPassword = rateLimit({
