@@ -1,8 +1,32 @@
 // controllers/KuisController.js
 import { supabaseAdmin } from '../config/db.js';
 import { successResponse, errorResponse } from '../models/apiResponse.js';
+import { ROLE } from '../config/roles.js';
 
-const KUIS_COLUMNS = 'idKuis, idUser, idBab, judul, deskripsi, durasi, tanggalDibuat';
+// pembuat:User(nama) = nama dosen pembuat lewat FK Kuis.idUser, supaya daftar kuis
+// dalam satu bab bisa dibedakan ("Kuis 1 - Dosen A", "Kuis 1 - Dosen B").
+const KUIS_COLUMNS = 'idKuis, idUser, idBab, judul, deskripsi, durasi, tanggalDibuat, pin, pembuat:User(nama)';
+
+// PIN berupa teks supaya angka 0 di depan (mis. "0420") tidak hilang.
+const PIN_FORMAT = /^[0-9]{4,8}$/;
+const PIN_TIDAK_VALID = 'PIN harus berupa teks berisi 4 sampai 8 digit angka.';
+
+// idUser NULL = pembuatnya sudah dihapus, kuisnya diwariskan ke semua admin.
+const bisaDikelola = (kuis, user) =>
+  user.role === ROLE.ADMIN && (kuis.idUser === null || kuis.idUser === user.id);
+
+// PIN hanya terlihat oleh dosen yang boleh mengelola kuis ini. Mahasiswa dan dosen lain
+// cukup tahu apakah kuis sudah dibuka (adaPin), bukan PIN-nya.
+const keRespons = ({ pin, pembuat, ...kuis }, user) => {
+  const kelola = bisaDikelola(kuis, user);
+  return {
+    ...kuis,
+    namaPembuat: pembuat?.nama ?? null,
+    adaPin: pin !== null,
+    bisaDikelola: kelola,
+    ...(kelola && { pin }),
+  };
+};
 
 // Menampilkan semua kuis — bisa diakses semua role yang sudah login.
 // Bisa difilter per bab lewat query ?idBab=... (dipakai mahasiswa: pilih bab dulu, baru lihat kuis-nya)
@@ -26,7 +50,10 @@ export const getAllKuis = async (req, res) => {
       return res.status(500).json(errorResponse({ message: error.message }));
     }
 
-    const daftar = data.map(({ Soal, ...kuis }) => ({ ...kuis, jumlahSoal: Soal[0]?.count ?? 0 }));
+    const daftar = data.map(({ Soal, ...kuis }) => ({
+      ...keRespons(kuis, req.currentUser),
+      jumlahSoal: Soal[0]?.count ?? 0,
+    }));
 
     return res.json(
       successResponse({ message: 'Berhasil mengambil daftar kuis.', data: daftar }),
@@ -50,7 +77,7 @@ export const getKuisById = async (req, res) => {
       return res.status(404).json(errorResponse({ message: 'Kuis tidak ditemukan.' }));
     }
 
-    return res.json(successResponse({ message: 'Berhasil mengambil kuis.', data }));
+    return res.json(successResponse({ message: 'Berhasil mengambil kuis.', data: keRespons(data, req.currentUser) }));
   } catch (error) {
     return res.status(500).json(errorResponse({ message: error.message || 'Gagal mengambil kuis.' }));
   }
@@ -59,7 +86,7 @@ export const getKuisById = async (req, res) => {
 // Hanya admin (guru) yang bisa membuat kuis — pemiliknya adalah guru yang sedang login
 export const createKuis = async (req, res) => {
   try {
-    const { idBab, judul, deskripsi, durasi } = req.body;
+    const { idBab, judul, deskripsi, durasi, pin } = req.body;
 
     if (!idBab || !judul || !judul.trim()) {
       return res.status(400).json(errorResponse({ message: 'idBab dan judul wajib diisi.' }));
@@ -80,6 +107,14 @@ export const createKuis = async (req, res) => {
       }
       payload.durasi = durasiInt;
     }
+    // PIN opsional saat membuat: kuis tanpa PIN belum bisa dikerjakan mahasiswa,
+    // jadi dosen bisa menyusun soal dulu dan membukanya belakangan.
+    if (pin !== undefined && pin !== null) {
+      if (typeof pin !== 'string' || !PIN_FORMAT.test(pin)) {
+        return res.status(400).json(errorResponse({ message: PIN_TIDAK_VALID }));
+      }
+      payload.pin = pin;
+    }
 
     const { data, error } = await supabaseAdmin
       .from('Kuis')
@@ -95,7 +130,7 @@ export const createKuis = async (req, res) => {
       return res.status(500).json(errorResponse({ message: error.message || 'Gagal membuat kuis.' }));
     }
 
-    return res.status(201).json(successResponse({ message: 'Kuis berhasil dibuat.', data }));
+    return res.status(201).json(successResponse({ message: 'Kuis berhasil dibuat.', data: keRespons(data, req.currentUser) }));
   } catch (error) {
     return res.status(500).json(errorResponse({ message: error.message || 'Gagal membuat kuis.' }));
   }
@@ -105,9 +140,10 @@ export const createKuis = async (req, res) => {
 export const updateKuis = async (req, res) => {
   try {
     const { id } = req.params;
-    const { idBab, judul, deskripsi, durasi } = req.body;
+    const { idBab, judul, deskripsi, durasi, pin } = req.body;
 
-    if (idBab === undefined && judul === undefined && deskripsi === undefined && durasi === undefined) {
+    if (idBab === undefined && judul === undefined && deskripsi === undefined
+      && durasi === undefined && pin === undefined) {
       return res.status(400).json(errorResponse({ message: 'Tidak ada data yang diubah.' }));
     }
 
@@ -121,8 +157,7 @@ export const updateKuis = async (req, res) => {
       return res.status(404).json(errorResponse({ message: 'Kuis tidak ditemukan.' }));
     }
 
-    // idUser NULL = pembuatnya sudah dihapus, kuisnya diwariskan ke semua admin.
-    if (existing.idUser !== null && existing.idUser !== req.currentUser.id) {
+    if (!bisaDikelola(existing, req.currentUser)) {
       return res.status(403).json(
         errorResponse({ message: 'Kamu hanya bisa mengubah kuis yang kamu buat sendiri.' }),
       );
@@ -144,6 +179,13 @@ export const updateKuis = async (req, res) => {
       }
       updatePayload.durasi = durasiInt;
     }
+    // pin: null = menutup kuis lagi (mahasiswa tidak bisa memulai attempt baru)
+    if (pin !== undefined) {
+      if (pin !== null && (typeof pin !== 'string' || !PIN_FORMAT.test(pin))) {
+        return res.status(400).json(errorResponse({ message: PIN_TIDAK_VALID }));
+      }
+      updatePayload.pin = pin;
+    }
 
     const { data, error } = await supabaseAdmin
       .from('Kuis')
@@ -159,7 +201,7 @@ export const updateKuis = async (req, res) => {
       return res.status(500).json(errorResponse({ message: error.message || 'Gagal memperbarui kuis.' }));
     }
 
-    return res.json(successResponse({ message: 'Kuis berhasil diperbarui.', data }));
+    return res.json(successResponse({ message: 'Kuis berhasil diperbarui.', data: keRespons(data, req.currentUser) }));
   } catch (error) {
     return res.status(500).json(errorResponse({ message: error.message || 'Gagal memperbarui kuis.' }));
   }
@@ -180,8 +222,7 @@ export const deleteKuis = async (req, res) => {
       return res.status(404).json(errorResponse({ message: 'Kuis tidak ditemukan.' }));
     }
 
-    // idUser NULL = pembuatnya sudah dihapus, kuisnya diwariskan ke semua admin.
-    if (existing.idUser !== null && existing.idUser !== req.currentUser.id) {
+    if (!bisaDikelola(existing, req.currentUser)) {
       return res.status(403).json(
         errorResponse({ message: 'Kamu hanya bisa menghapus kuis yang kamu buat sendiri.' }),
       );

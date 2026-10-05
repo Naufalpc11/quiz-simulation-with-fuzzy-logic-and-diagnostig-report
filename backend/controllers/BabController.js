@@ -8,6 +8,10 @@ const BAB_COLUMNS = 'idBab, namaBab, deskripsi, urutanBab, dibuatOleh, tanggalDi
 // "3" dari body JSON yang salah ketik akan tertolak di sini, bukan jadi urutan aneh di daftar.
 const urutanValid = (nilai) => Number.isInteger(nilai) && nilai >= 0;
 
+// 23505 = unique violation pada idx_bab_nama_unik (nama bab unik, tidak peka huruf besar/kecil)
+const namaBabDobel = (res, namaBab) =>
+  res.status(409).json(errorResponse({ message: `Bab dengan nama "${namaBab}" sudah ada.` }));
+
 // Menampilkan semua bab — bisa diakses semua role yang sudah login (guru, superadmin, mahasiswa).
 // Diurutkan dari bab pertama, bukan dari yang terbaru dibuat.
 export const getAllBab = async (req, res) => {
@@ -49,7 +53,8 @@ export const getBabById = async (req, res) => {
   }
 };
 
-// Hanya admin (guru) yang bisa membuat bab — pemiliknya adalah guru yang sedang login
+// Hanya admin (guru) yang bisa membuat bab. dibuatOleh hanya catatan pembuat:
+// bab dipakai bersama, semua dosen bisa mengisinya dengan kuis masing-masing.
 export const createBab = async (req, res) => {
   try {
     const { namaBab, deskripsi, urutanBab } = req.body;
@@ -74,6 +79,7 @@ export const createBab = async (req, res) => {
       .single();
 
     if (error) {
+      if (error.code === '23505') return namaBabDobel(res, namaBab.trim());
       return res.status(500).json(errorResponse({ message: error.message || 'Gagal membuat bab.' }));
     }
 
@@ -83,7 +89,7 @@ export const createBab = async (req, res) => {
   }
 };
 
-// Hanya admin pembuat bab ini sendiri yang boleh mengubahnya
+// Bab dipakai bersama, jadi admin (dosen) mana pun boleh mengubahnya
 export const updateBab = async (req, res) => {
   try {
     const { id } = req.params;
@@ -91,24 +97,6 @@ export const updateBab = async (req, res) => {
 
     if (namaBab === undefined && deskripsi === undefined && urutanBab === undefined) {
       return res.status(400).json(errorResponse({ message: 'Tidak ada data yang diubah.' }));
-    }
-
-    const { data: existing, error: findError } = await supabaseAdmin
-      .from('Bab')
-      .select('idBab, dibuatOleh')
-      .eq('idBab', id)
-      .single();
-
-    if (findError || !existing) {
-      return res.status(404).json(errorResponse({ message: 'Bab tidak ditemukan.' }));
-    }
-
-    // dibuatOleh NULL = pembuatnya sudah dihapus. Bab-nya tetap dipakai semua orang,
-    // jadi admin mana pun boleh mengurusnya. Tanpa ini bab itu terkunci selamanya.
-    if (existing.dibuatOleh !== null && existing.dibuatOleh !== req.currentUser.id) {
-      return res.status(403).json(
-        errorResponse({ message: 'Kamu hanya bisa mengubah bab yang kamu buat sendiri.' }),
-      );
     }
 
     const updatePayload = { tanggalDiupdate: new Date().toISOString() };
@@ -131,10 +119,15 @@ export const updateBab = async (req, res) => {
       .update(updatePayload)
       .eq('idBab', id)
       .select(BAB_COLUMNS)
-      .single();
+      .maybeSingle();
 
     if (error) {
+      if (error.code === '23505') return namaBabDobel(res, updatePayload.namaBab);
       return res.status(500).json(errorResponse({ message: error.message || 'Gagal memperbarui bab.' }));
+    }
+
+    if (!data) {
+      return res.status(404).json(errorResponse({ message: 'Bab tidak ditemukan.' }));
     }
 
     return res.json(successResponse({ message: 'Bab berhasil diperbarui.', data }));
@@ -143,14 +136,15 @@ export const updateBab = async (req, res) => {
   }
 };
 
-// Hanya admin pembuat bab ini sendiri yang boleh menghapusnya
+// Admin (dosen) mana pun boleh menghapus bab, asalkan sudah tidak ada kuis di dalamnya.
+// Kuis milik dosen lain tidak boleh ikut hilang hanya karena bab-nya dihapus.
 export const deleteBab = async (req, res) => {
   try {
     const { id } = req.params;
 
     const { data: existing, error: findError } = await supabaseAdmin
       .from('Bab')
-      .select('idBab, namaBab, dibuatOleh')
+      .select('idBab, namaBab, Kuis(count)')
       .eq('idBab', id)
       .single();
 
@@ -158,18 +152,17 @@ export const deleteBab = async (req, res) => {
       return res.status(404).json(errorResponse({ message: 'Bab tidak ditemukan.' }));
     }
 
-    // dibuatOleh NULL = pembuatnya sudah dihapus. Bab-nya tetap dipakai semua orang,
-    // jadi admin mana pun boleh mengurusnya. Tanpa ini bab itu terkunci selamanya.
-    if (existing.dibuatOleh !== null && existing.dibuatOleh !== req.currentUser.id) {
-      return res.status(403).json(
-        errorResponse({ message: 'Kamu hanya bisa menghapus bab yang kamu buat sendiri.' }),
+    const jumlahKuis = existing.Kuis[0]?.count ?? 0;
+    if (jumlahKuis > 0) {
+      return res.status(409).json(
+        errorResponse({ message: `Bab "${existing.namaBab}" masih berisi ${jumlahKuis} kuis. Hapus semua kuisnya terlebih dahulu.` }),
       );
     }
 
     const { error } = await supabaseAdmin.from('Bab').delete().eq('idBab', id);
 
     if (error) {
-      // 23503 = foreign key violation — masih dipakai kuis/hasil analisis
+      // 23503 = foreign key violation — kuis masuk di sela pengecekan, atau masih dipakai hasil analisis/roadmap
       if (error.code === '23503') {
         return res.status(409).json(
           errorResponse({ message: 'Bab tidak bisa dihapus karena masih dipakai oleh kuis atau hasil analisis.' }),

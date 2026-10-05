@@ -15,8 +15,9 @@ router.post('/', verifyLoggedIn, verifyAdmin, createKuis);
 router.put('/:id', verifyLoggedIn, verifyAdmin, updateKuis);
 router.delete('/:id', verifyLoggedIn, verifyAdmin, deleteKuis);
 
-// Soal satu kuis sekaligus — dipakai halaman editor soal di frontend
-router.get('/:idKuis/soal', verifyLoggedIn, getSoalKuis);
+// Soal satu kuis sekaligus — dipakai halaman editor soal di frontend.
+// Khusus dosen: mahasiswa mendapat soal lewat POST /api/pengerjaan setelah lolos PIN.
+router.get('/:idKuis/soal', verifyLoggedIn, verifyAdmin, getSoalKuis);
 router.put('/:idKuis/soal', verifyLoggedIn, verifyAdmin, simpanSoalKuis);
 
 export default router;

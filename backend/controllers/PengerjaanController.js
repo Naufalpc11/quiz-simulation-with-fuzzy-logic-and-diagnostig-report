@@ -120,16 +120,18 @@ async function validateAndSaveAnswers(res, attempt, answers) {
 
 export const mulaiPengerjaan = async (req, res) => {
   try {
-    const { idKuis } = req.body ?? {};
+    const { idKuis, pin } = req.body ?? {};
     if (!uuidValid(idKuis)) return idInvalid(res);
 
-    const { data: kuis, error: kuisError } = await supabaseAdmin
+    const { data: kuisDb, error: kuisError } = await supabaseAdmin
       .from('Kuis')
-      .select('idKuis, judul, durasi')
+      .select('idKuis, judul, durasi, pin')
       .eq('idKuis', idKuis)
       .maybeSingle();
     if (kuisError) return dbError(res, kuisError, 'Gagal memeriksa kuis.');
-    if (!kuis) return res.status(404).json(errorResponse({ message: 'Kuis tidak ditemukan.' }));
+    if (!kuisDb) return res.status(404).json(errorResponse({ message: 'Kuis tidak ditemukan.' }));
+    // PIN dipisah supaya tidak ikut terkirim ke mahasiswa di respons
+    const { pin: pinKuis, ...kuis } = kuisDb;
 
     const { data: questions, error: questionsError } = await getQuizQuestions(idKuis);
     if (questionsError) return dbError(res, questionsError, 'Gagal memuat soal kuis.');
@@ -153,7 +155,26 @@ export const mulaiPengerjaan = async (req, res) => {
       .maybeSingle();
     if (attemptError) return dbError(res, attemptError, 'Gagal memeriksa pengerjaan aktif.');
 
+    // PIN hanya diminta saat membuat attempt baru. Attempt yang masih berlangsung sudah
+    // pernah lolos PIN, jadi bisa dilanjutkan (mis. setelah refresh) tanpa memasukkan ulang.
     if (!attempt) {
+      if (pinKuis === null) {
+        return res.status(403).json(errorResponse({
+          message: 'Kuis ini belum dibuka oleh dosen.',
+          code: 'KUIS_BELUM_DIBUKA',
+        }));
+      }
+      if (pin === undefined || pin === null || pin === '') {
+        return res.status(403).json(errorResponse({
+          message: 'Masukkan PIN kuis dari dosen untuk memulai.',
+          code: 'PIN_DIBUTUHKAN',
+        }));
+      }
+      if (String(pin) !== pinKuis) {
+        res.locals.pinSalah = true; // dihitung oleh batasPinKuis
+        return res.status(403).json(errorResponse({ message: 'PIN kuis salah.', code: 'PIN_SALAH' }));
+      }
+
       const { count, error: countError } = await supabaseAdmin
         .from('PengerjaanKuis')
         .select('idPengerjaan', { count: 'exact', head: true })
