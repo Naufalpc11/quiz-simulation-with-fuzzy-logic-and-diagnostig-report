@@ -7,6 +7,7 @@ import {
   ambilKuis,
 } from '../services/kuis'
 import { SessionExpiredError } from '../services/auth'
+import StudentHeader from '../components/StudentHeader.vue'
 
 const props = defineProps({ id: { type: String, required: true } })
 const router = useRouter()
@@ -83,17 +84,7 @@ onMounted(async () => {
 
 <template>
   <div class="min-h-screen bg-wf-page text-wf-text">
-    <header class="border-b border-wf-border bg-wf-card">
-      <div class="mx-auto flex max-w-[1140px] items-center justify-between gap-5 px-6 py-5 sm:px-10">
-        <div>
-          <p class="font-semibold uppercase tracking-[0.08em] text-wf-secondary">Bahasa Indonesia · Bab 1</p>
-          <h1 class="mt-2 text-[21px] font-bold">{{ kuis?.judul || 'Kuis' }}</h1>
-        </div>
-        <button type="button" class="rounded-xl border border-wf-brand-border px-5 py-3 text-[18px] font-semibold text-wf-brand hover:bg-wf-brand-soft" @click="router.back()">
-          KELUAR LATIHAN
-        </button>
-      </div>
-    </header>
+    <StudentHeader active="latihan" />
 
     <main class="mx-auto max-w-[628px] px-6 pb-12 pt-8 sm:px-0">
       <p v-if="loading" class="text-wf-secondary">Memuat ringkasan hasil...</p>
@@ -126,7 +117,10 @@ onMounted(async () => {
           <button type="button" class="rounded-xl border border-wf-accent-light px-4 py-3 font-semibold text-wf-brand hover:bg-wf-brand-soft" @click="togglePembahasan">
             {{ loadingPembahasan ? 'MEMUAT...' : tampilPembahasan ? 'SEMBUNYIKAN PEMBAHASAN' : 'BUKA PEMBAHASAN SEMUA SOAL' }}
           </button>
-          <button type="button" class="rounded-xl border border-wf-accent-light px-4 py-3 font-semibold text-wf-brand hover:bg-wf-brand-soft">STATISTIK →</button>
+          <button type="button" class="rounded-xl bg-wf-brand px-4 py-3 font-semibold text-white hover:bg-wf-accent-hover" @click="router.push({ path: `/kuis/${props.id}/diagnostik`, query: { pengerjaan: route.query.pengerjaan } })">
+            BUKA LAPORAN DIAGNOSTIK
+          </button>
+          <button type="button" class="rounded-xl border border-wf-accent-light px-4 py-3 font-semibold text-wf-brand hover:bg-wf-brand-soft" @click="router.push('/statistik')">STATISTIK →</button>
         </div>
         <p v-if="errorPembahasan" role="alert" class="mt-3 text-sm text-red-700">{{ errorPembahasan }}</p>
         <section v-if="tampilPembahasan" class="mt-4 flex flex-col gap-4">

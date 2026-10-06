@@ -6,6 +6,7 @@ import { ambilDaftarKuis } from '../services/kuis'
 import { getAvatar, getUser, keluar, SessionExpiredError } from '../services/auth'
 import logoImage from '../assets/logo-esikap.png'
 import avatarImage from '../assets/icons/avatar.svg'
+import StudentHeader from '../components/StudentHeader.vue'
 
 const props = defineProps({ id: { type: String, required: true } })
 const router = useRouter()
@@ -77,24 +78,7 @@ onMounted(async () => {
 
 <template>
   <div class="min-h-screen bg-wf-page text-wf-text">
-    <header class="border-b border-wf-border bg-wf-card px-6 py-4 sm:px-10 lg:px-[6.7%]">
-      <div class="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4">
-        <div class="flex flex-wrap items-center gap-x-8 lg:gap-x-10">
-          <RouterLink to="/dashboard" class="block h-10 w-[105px] sm:w-[125px]">
-            <img :src="logoImage" alt="eSikap" class="size-full object-contain" />
-          </RouterLink>
-          <nav class="flex items-center gap-x-7 text-[16px] sm:text-[17px]">
-            <RouterLink to="/dashboard" class="border-b-2 border-wf-brand py-1 text-wf-text">Latihan</RouterLink>
-            <button type="button" class="py-1 text-wf-secondary">Statistik</button>
-            <button type="button" class="py-1 text-wf-secondary">History</button>
-          </nav>
-        </div>
-        <div class="flex items-center gap-3 text-sm text-wf-secondary sm:text-[15px]">
-          <span>{{ user?.nama || 'Mahasiswa' }}<span v-if="user?.username"> · {{ user.username }}</span></span>
-          <img :src="avatar" alt="" class="size-8 rounded-full object-cover" />
-        </div>
-      </div>
-    </header>
+    <StudentHeader active="latihan" />
 
     <main class="mx-auto max-w-[1000px] px-6 pb-12 pt-9 sm:px-10 lg:px-0">
       <p class="font-mono text-[13px] uppercase tracking-[0.12em] text-wf-secondary">
@@ -103,6 +87,9 @@ onMounted(async () => {
       </p>
       <h1 class="mt-4 text-[27px] font-bold sm:text-[30px]">{{ bab?.namaBab || 'Latihan' }}</h1>
       <p class="mt-1 text-[16px] text-wf-secondary">{{ formatRingkasan() }}</p>
+      <RouterLink to="/pembahasan-demo" class="mt-4 inline-flex rounded-xl border border-wf-brand-border px-4 py-2 text-sm font-semibold text-wf-brand hover:bg-wf-brand-soft">
+        LIHAT CONTOH PEMBAHASAN
+      </RouterLink>
 
       <p v-if="loading" class="mt-8 text-wf-secondary">Memuat daftar latihan...</p>
       <p v-else-if="errorMsg" role="alert" class="mt-8 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-wf-no-text">

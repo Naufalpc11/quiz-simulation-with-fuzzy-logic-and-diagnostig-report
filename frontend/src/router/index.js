@@ -12,6 +12,8 @@ import EditPhotoView from '../views/EditPhotoView.vue'
 import StudentBabView from '../views/StudentBabView.vue'
 import StudentQuizView from '../views/StudentQuizView.vue'
 import QuizResultView from '../views/QuizResultView.vue'
+import QuizDiscussionView from '../views/QuizDiscussionView.vue'
+import StudentDiagnosticView from '../views/StudentDiagnosticView.vue'
 import StudentStatisticsView from '../views/StudentStatisticsView.vue'
 import StudentLearningMapView from '../views/StudentLearningMapView.vue'
 import StudentRoadmapView from '../views/StudentRoadmapView.vue'
@@ -44,6 +46,9 @@ const router = createRouter({
     { path: '/latihan/:id', name: 'latihan-bab', component: StudentBabView, props: true, meta: { butuhLogin: true } },
     { path: '/kuis/:id/kerjakan', name: 'kerjakan-kuis', component: StudentQuizView, props: true, meta: { butuhLogin: true } },
     { path: '/kuis/:id/hasil', name: 'hasil-kuis', component: QuizResultView, props: true, meta: { butuhLogin: true } },
+    { path: '/kuis/:id/diagnostik', name: 'diagnostik-kuis', component: StudentDiagnosticView, props: true, meta: { butuhLogin: true } },
+    { path: '/kuis/:id/pembahasan', name: 'pembahasan-kuis', component: QuizDiscussionView, props: true, meta: { butuhLogin: true } },
+    { path: '/pembahasan-demo', name: 'pembahasan-demo', component: QuizDiscussionView, props: { id: 'demo' }, meta: { butuhLogin: true } },
     { path: '/bab', name: 'kelola-bab', component: KelolaBabView, meta: khususAdmin },
     { path: '/bab/tambah', name: 'tambah-bab', component: BabFormView, meta: khususAdmin },
     { path: '/bab/:id/edit', name: 'edit-bab', component: BabFormView, props: true, meta: khususAdmin },
