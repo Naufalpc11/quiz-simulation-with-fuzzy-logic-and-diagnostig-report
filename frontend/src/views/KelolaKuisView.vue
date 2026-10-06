@@ -272,20 +272,18 @@ async function generatePasswordBaru() {
                 {{ kuis.status === 'terbit' ? 'Terbit' : 'Draf' }}
               </span>
               <template v-if="milikSendiri(kuis)">
+                <button
+                  type="button"
+                  @click="bukaPassword(kuis)"
+                  class="tombol-aksi"
+                >
+                  Password
+                </button>
                 <RouterLink :to="`/kuis/${kuis.idKuis}/soal`" class="tombol-aksi">Edit Soal</RouterLink>
                 <RouterLink :to="`/kuis/${kuis.idKuis}/edit`" class="tombol-aksi">Edit</RouterLink>
                 <button type="button" @click="handleHapus(kuis)" class="tombol-aksi-bahaya">Hapus</button>
               </template>
               <RouterLink v-else :to="`/kuis/${kuis.idKuis}/soal`" class="tombol-aksi">Lihat</RouterLink>
-              <!-- Password hanya untuk dosen yang boleh mengelola kuis ini -->
-              <button
-                v-if="kuis.bisaDikelola !== false"
-                type="button"
-                @click="bukaPassword(kuis)"
-                class="tombol-aksi"
-              >
-                Password
-              </button>
             </div>
           </article>
         </section>
