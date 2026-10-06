@@ -45,7 +45,7 @@ const milikSendiri = (kuis) => kuis.bisaDikelola !== false
 
 function keteranganKuis(kuis) {
   const bagian = [`Dibuat ${formatTanggal(kuis.tanggalDibuat)}`]
-  if (kuis.namaPembuat) bagian.push(`oleh ${milikSendiri(kuis) ? 'kamu' : kuis.namaPembuat}`)
+  if (kuis.namaPembuat) bagian.push(`oleh ${milikSendiri(kuis) ? 'Anda' : kuis.namaPembuat}`)
   if (kuis.jumlahSoal != null) bagian.push(`${kuis.jumlahSoal} soal`)
   if (kuis.durasi) bagian.push(`${kuis.durasi} menit`)
   if (kuis.deskripsi) bagian.push(kuis.deskripsi)

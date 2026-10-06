@@ -62,8 +62,8 @@ function statusOpsi(index) {
 }
 
 function teksStatus() {
-  if (statusAktif.value === 'Tepat') return 'JAWABANMU BENAR ✓'
-  if (statusAktif.value === 'Belum tepat') return 'JAWABANMU ✕'
+  if (statusAktif.value === 'Tepat') return 'JAWABAN ANDA BENAR ✓'
+  if (statusAktif.value === 'Belum tepat') return 'JAWABAN ANDA ✕'
   return jawabanAktif.value === undefined ? 'TIDAK DIJAWAB' : 'PEMBAHASAN'
 }
 
@@ -117,7 +117,7 @@ onMounted(async () => {
             <span class="font-semibold">{{ String.fromCharCode(65 + index) }}</span>
             <span class="flex-1">{{ formatOpsi(opsi.opsi) }}</span>
             <strong v-if="statusOpsi(index) === 'benar'" class="text-sm">BENAR ✓</strong>
-            <strong v-else-if="statusOpsi(index) === 'salah'" class="text-sm">JAWABANMU ×</strong>
+            <strong v-else-if="statusOpsi(index) === 'salah'" class="text-sm">JAWABAN ANDA ×</strong>
           </div>
         </div>
 

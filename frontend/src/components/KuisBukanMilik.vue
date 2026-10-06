@@ -53,7 +53,7 @@ const rincian = computed(() => [
           <div class="flex flex-col gap-1">
             <h2 class="text-[20px] leading-7 font-semibold">Kuis ini milik {{ pembuat }}</h2>
             <p class="text-[17px] leading-6 text-wf-secondary">
-              Kamu hanya bisa mengubah kuis dan soal yang kamu buat sendiri. Kalau kuis ini perlu diperbaiki,
+              Anda hanya bisa mengubah kuis dan soal yang Anda buat sendiri. Kalau kuis ini perlu diperbaiki,
               hubungi dosen pembuatnya, atau buat kuis baru di bab ini.
             </p>
           </div>

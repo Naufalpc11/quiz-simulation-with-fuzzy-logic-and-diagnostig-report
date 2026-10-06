@@ -95,7 +95,7 @@ onMounted(async () => {
 
     <main class="mx-auto max-w-[780px] px-6 pb-12 pt-8 sm:px-0">
       <h1 class="text-[21px] font-bold sm:text-[23px]">Peta belajar saya, Bahasa Indonesia</h1>
-      <p class="mt-1 text-[14px] text-wf-secondary">Pilih bab untuk membuka roadmap belajarnya. Status tiap bab diambil dari nilai kuis terakhirmu.</p>
+      <p class="mt-1 text-[14px] text-wf-secondary">Pilih bab untuk membuka roadmap belajarnya. Status tiap bab diambil dari nilai kuis terakhir Anda.</p>
       <p v-if="notice" role="status" class="mt-4 rounded-md border border-wf-brand-border bg-wf-brand-soft px-4 py-3 text-sm text-wf-brand">{{ notice }}</p>
       <p v-if="errorMsg" role="alert" class="mt-4 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-wf-no-text">{{ errorMsg }}</p>
       <p v-if="loading" class="mt-6 text-wf-secondary">Memuat peta belajar...</p>

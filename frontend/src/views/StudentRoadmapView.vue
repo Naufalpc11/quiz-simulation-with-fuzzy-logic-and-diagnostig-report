@@ -18,7 +18,7 @@ const errorMsg = ref('')
 const tahapDefault = [
   {
     judul: 'Kata Baku',
-    ringkasan: '1 dari 2 soal belum tepat. Kamu memilih "analisa", bentuk bakunya "analisis".',
+    ringkasan: '1 dari 2 soal belum tepat. Anda memilih "analisa", bentuk bakunya "analisis".',
     tujuan: 'menjelaskan pengertian kata baku dan tidak baku · membedakan keduanya dalam kalimat · memilih kata baku untuk konteks formal dan akademik · memperbaiki kata tidak baku.',
     kegiatan: 'baca ciri-ciri kata baku · amati contoh aktivitas, analisis, izin, risiko · kelompokkan baku / tidak baku · latihan pilihan ganda · perbaiki 10 kalimat · tulis 5 kalimat.',
   },
@@ -60,7 +60,7 @@ onMounted(async () => {
       </p>
       <h1 class="mt-5 text-[27px] font-bold sm:text-[30px]">Roadmap bab {{ namaBab }}</h1>
       <p class="mt-1 text-[17px] text-wf-secondary">
-        Bahasa Indonesia · {{ tahap.length }} tahap · nilai terakhir {{ nilaiTerakhir }}. Urutan tahap di dalam bab ini beserta status penguasaanmu.
+        Bahasa Indonesia · {{ tahap.length }} tahap · nilai terakhir {{ nilaiTerakhir }}. Urutan tahap di dalam bab ini beserta status penguasaan Anda.
       </p>
 
       <p v-if="loading" class="mt-7 text-wf-secondary">Memuat roadmap...</p>

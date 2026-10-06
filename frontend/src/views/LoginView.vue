@@ -31,7 +31,7 @@ async function handleSubmit() {
     saveSession(data)
 
     if (data.previous_session_ended) {
-      setNotice('Sesi akunmu di perangkat lain sudah diakhiri otomatis.')
+      setNotice('Sesi akun Anda di perangkat lain sudah diakhiri otomatis.')
     }
 
     router.push(halamanAwal(data.user))
@@ -149,7 +149,7 @@ async function handleForgotPassword() {
           <p class="text-xs font-semibold text-gray-700">
             {{ mengirimReset ? 'MENGIRIM...' : 'LUPA PASSWORD?' }}
           </p>
-          <p class="text-xs text-gray-500 mt-0.5">Klik untuk kirim tautan reset ke email kamu</p>
+          <p class="text-xs text-gray-500 mt-0.5">Klik untuk kirim tautan reset ke email Anda</p>
         </button>
       </div>
 
