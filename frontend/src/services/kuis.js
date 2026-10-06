@@ -109,10 +109,10 @@ export async function simpanSoalKuis(idKuis, daftarSoal) {
 
 // ── Pengerjaan kuis mahasiswa ──
 
-export async function mulaiPengerjaanKuis(idKuis) {
+export async function mulaiPengerjaanKuis(idKuis, pin) {
   const payload = await panggil('/pengerjaan', {
     method: 'POST',
-    body: { idKuis },
+    body: { idKuis, pin },
   })
   return payload.data
 }

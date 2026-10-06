@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '../config/db.js';
 import { successResponse, errorResponse } from '../models/apiResponse.js';
 import { evaluateQuiz } from '../services/fuzzyService.js';
+import { samaPassword } from '../utils/passwordKuis.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SOAL_SELECT =
@@ -170,7 +171,7 @@ export const mulaiPengerjaan = async (req, res) => {
           code: 'PIN_DIBUTUHKAN',
         }));
       }
-      if (String(pin) !== pinKuis) {
+      if (!samaPassword(pin, pinKuis)) {
         res.locals.pinSalah = true; // dihitung oleh batasPinKuis
         return res.status(403).json(errorResponse({ message: 'PIN kuis salah.', code: 'PIN_SALAH' }));
       }

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import AdminHeader from '../components/AdminHeader.vue'
+import MathField from '../components/MathField.vue'
 import { setNotice, SessionExpiredError } from '../services/auth'
 import {
   TINGKAT_KESULITAN,
@@ -14,6 +15,7 @@ import {
   ambilSoalKuis,
   simpanSoalKuis,
 } from '../services/kuis'
+import { keMathLive, keFormatSimpan } from '../utils/mathLive'
 import pencilIcon from '../assets/icons/pencil.svg'
 import fileIcon from '../assets/icons/file.svg'
 import fileUpIcon from '../assets/icons/file-up.svg'
@@ -79,6 +81,16 @@ const namaBabAktif = computed(
 const idBabAsal = ref(null)
 const namaBabAsal = computed(() => daftarBab.value.find((b) => b.idBab === idBabAsal.value)?.namaBab ?? '')
 const tautanKembali = computed(() => (idBabAsal.value ? `/bab/${idBabAsal.value}/kuis` : '/bab'))
+
+// ── Pratinjau teks (untuk dsb. daftar opsi di kolom kanan) ──
+// Field menyimpan $...$; untuk cuplikan pendek, rumus diganti ellipsis.
+function intisari(teks) {
+  return (teks ?? '')
+    .replace(/\$\$[\s\S]+?\$\$/g, ' ⋯ ')
+    .replace(/\$[^$\n]+?\$/g, ' ⋯ ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
 
 // ── Validasi ──
 
@@ -175,15 +187,24 @@ onMounted(async () => {
     if (modeEdit.value) {
       const kuis = await ambilKuis(props.id)
       info.value = {
+        // Judul = teks biasa, tidak lewat konversi math.
         judul: kuis.judul,
         idBab: kuis.idBab,
-        deskripsi: kuis.deskripsi ?? '',
+        deskripsi: keMathLive(kuis.deskripsi ?? ''),
         durasi: kuis.durasi ?? 30,
       }
 
       try {
         const soalLama = await ambilSoalKuis(props.id)
-        if (soalLama.length) daftarSoal.value = soalLama
+        if (soalLama.length) {
+          // Data dari backend pakai \( \); ubah ke $ ... $ supaya MathLive bisa baca.
+          daftarSoal.value = soalLama.map((s) => ({
+            ...s,
+            pertanyaan: keMathLive(s.pertanyaan),
+            opsi: (s.opsi ?? []).map(keMathLive),
+            pembahasan: keMathLive(s.pembahasan ?? ''),
+          }))
+        }
       } catch (err) {
         if (!(err instanceof EndpointBelumAdaError)) throw err
         infoMsg.value = 'Soal lama belum bisa dimuat karena endpoint soal belum tersedia di backend.'
@@ -237,11 +258,20 @@ async function simpan() {
 
   menyimpan.value = true
   const dataKuis = {
-    judul: info.value.judul,
+    // Judul disimpan mentah sebagai teks biasa.
+    judul: info.value.judul.trim(),
     idBab: info.value.idBab,
-    deskripsi: info.value.deskripsi.trim() || null,
+    deskripsi: keFormatSimpan(info.value.deskripsi).trim() || null,
     durasi: info.value.durasi,
   }
+  // Nilai field MathLive pakai $...$; kembalikan ke \( \) sebelum kirim ke backend
+  // supaya format di DB konsisten dengan data lama.
+  const dataSoal = daftarSoal.value.map((s) => ({
+    ...s,
+    pertanyaan: keFormatSimpan(s.pertanyaan),
+    opsi: s.opsi.map((o) => keFormatSimpan(o)),
+    pembahasan: keFormatSimpan(s.pembahasan),
+  }))
 
   try {
     if (idKuisTersimpan.value) {
@@ -251,7 +281,7 @@ async function simpan() {
       idKuisTersimpan.value = kuis.idKuis
     }
 
-    await simpanSoalKuis(idKuisTersimpan.value, daftarSoal.value)
+    await simpanSoalKuis(idKuisTersimpan.value, dataSoal)
 
     bersih.value = true
     setNotice(`Kuis "${dataKuis.judul}" berhasil disimpan dengan ${daftarSoal.value.length} soal.`)
@@ -379,6 +409,8 @@ function hapusBerkas() {
       >
         <p v-if="!modeEdit" class="-mt-1 text-[14px] leading-normal text-wf-secondary">
           Tambahkan pertanyaan, pilihan jawaban, jawaban benar, dan pembahasan.
+          Rumus matematika dibatasi $ ... $ (inline) atau $$ ... $$ (blok); ketik
+          <code>\frac</code> untuk pecahan.
         </p>
 
         <!-- Baris judul -->
@@ -388,15 +420,15 @@ function hapusBerkas() {
               {{ namaBabAktif }}
             </p>
             <div class="flex flex-wrap gap-4">
-              <label class="flex flex-col gap-2 w-full sm:w-[360px]">
+              <div class="flex flex-col gap-2 w-full sm:w-[360px]">
                 <span class="font-mono font-bold text-[16px] lg:text-[18px] leading-5 tracking-[1px] text-wf-muted">NAMA KUIS</span>
                 <input
                   v-model="info.judul"
                   type="text"
-                  placeholder="mis. Huruf Kapital"
+                  placeholder="masukkan nama kuis"
                   class="bg-wf-card border border-wf-border rounded-md p-4 text-[17px] leading-6 placeholder:text-wf-muted focus:outline-none focus:ring-2 focus:ring-wf-brand"
                 />
-              </label>
+              </div>
               <label class="flex flex-col gap-2 w-full sm:w-[260px]">
                 <span class="font-mono font-bold text-[16px] lg:text-[18px] leading-5 tracking-[1px] text-wf-muted">BAB</span>
                 <select
@@ -449,16 +481,13 @@ function hapusBerkas() {
             </div>
 
             <div class="flex flex-col gap-2">
-              <label for="pertanyaan" class="text-[16px] lg:text-[18px] leading-5 font-semibold tracking-[1px] text-wf-muted">
+              <span class="text-[16px] lg:text-[18px] leading-5 font-semibold tracking-[1px] text-wf-muted">
                 PERTANYAAN
-              </label>
-              <textarea
-                id="pertanyaan"
+              </span>
+              <MathField
                 v-model="soal.pertanyaan"
-                rows="5"
-                placeholder="Tulis pertanyaan di sini, termasuk stimulus bila ada."
-                class="border border-wf-border-subtle rounded-md p-4 text-[17px] lg:text-[19px] leading-[26px] placeholder:text-wf-muted focus:outline-none focus:ring-2 focus:ring-wf-brand"
-              ></textarea>
+                placeholder="Tulis pertanyaan di sini."
+              />
 
               <!-- Posisi mengikuti Figma, tapi nilainya milik kuis (Kuis.durasi),
                    jadi tetap sama saat berpindah soal. -->
@@ -513,13 +542,14 @@ function hapusBerkas() {
                 <span class="size-12 shrink-0 flex items-center justify-center bg-wf-muted-surface border border-wf-border rounded-md text-[19px] font-semibold">
                   {{ hurufOpsi(i) }}
                 </span>
-                <input
-                  v-model="soal.opsi[i]"
-                  type="text"
-                  :aria-label="`Opsi ${hurufOpsi(i)}`"
-                  :placeholder="`Isi opsi ${hurufOpsi(i)}`"
-                  class="flex-1 min-w-0 border border-wf-border-subtle rounded-md px-4 py-3 text-[17px] lg:text-[19px] leading-[26px] placeholder:text-wf-muted focus:outline-none focus:ring-2 focus:ring-wf-brand"
-                />
+                <div class="flex-1 min-w-0">
+                  <MathField
+                    v-model="soal.opsi[i]"
+                    dense
+                    :aria-label="`Opsi ${hurufOpsi(i)}`"
+                    :placeholder="`Isi opsi ${hurufOpsi(i)}`"
+                  />
+                </div>
                 <button
                   type="button"
                   @click="hapusOpsi(i)"
@@ -532,15 +562,13 @@ function hapusBerkas() {
               </li>
             </ul>
 
-            <label class="flex flex-col gap-2">
+            <div class="flex flex-col gap-2">
               <span class="text-[15px] leading-5 font-semibold tracking-[1px] text-wf-muted">PEMBAHASAN</span>
-              <textarea
+              <MathField
                 v-model="soal.pembahasan"
-                rows="4"
                 placeholder="Jelaskan mengapa jawaban tersebut benar."
-                class="border border-wf-border-subtle rounded-md p-4 text-[17px] lg:text-[19px] leading-[26px] placeholder:text-wf-muted focus:outline-none focus:ring-2 focus:ring-wf-brand"
-              ></textarea>
-            </label>
+              />
+            </div>
 
             <button
               v-if="daftarSoal.length > 1"
@@ -624,7 +652,7 @@ function hapusBerkas() {
                   class="flex-1 min-w-0 truncate text-[15px] lg:text-[17px] leading-6"
                   :class="soal.kunci === i ? 'text-wf-text' : 'text-wf-muted'"
                 >
-                  {{ teks || '(kosong)' }}
+                  {{ intisari(teks) || '(kosong)' }}
                 </span>
               </label>
             </fieldset>
@@ -686,7 +714,7 @@ function hapusBerkas() {
           </span>
           <div class="flex-1 min-w-0">
             <p class="text-[17px] leading-6 font-semibold truncate">{{ berkas.name }}</p>
-            <p class="text-[15px] leading-5 text-wf-muted">{{ formatUkuran(berkas.size) }}</p>
+            <p class="text-[15px] leading-6 text-wf-muted">{{ formatUkuran(berkas.size) }}</p>
           </div>
           <div class="flex gap-3">
             <a
