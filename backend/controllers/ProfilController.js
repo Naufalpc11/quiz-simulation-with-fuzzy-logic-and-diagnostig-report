@@ -95,3 +95,35 @@ export const deleteFotoProfil = async (req, res) => {
     return res.status(500).json(errorResponse({ message: error.message || 'Gagal menghapus foto profil.' }));
   }
 };
+
+// Data akun milik user yang sedang login: tanggal bergabung dan terakhir masuk.
+export const getProfilSaya = async (req, res) => {
+  try {
+    const idUser = req.currentUser.id;
+
+    const [{ data: authData, error: authError }, { data: sesi, error: sesiError }] = await Promise.all([
+      supabaseAdmin.auth.admin.getUserById(idUser),
+      supabaseAdmin.from('SessionLogin').select('lastLogin').eq('idAkun', idUser).maybeSingle(),
+    ]);
+
+    if (authError || !authData?.user) {
+      return res.status(404).json(errorResponse({ message: 'Akun tidak ditemukan.' }));
+    }
+    if (sesiError) {
+      return res.status(500).json(errorResponse({ message: sesiError.message || 'Gagal membaca riwayat login.' }));
+    }
+
+    return res.json(
+      successResponse({
+        message: 'Berhasil mengambil data akun.',
+        data: {
+          bergabung: authData.user.created_at,
+          // Cadangan ke last_sign_in_at kalau baris SessionLogin belum ada (mis. akun lama).
+          terakhirMasuk: sesi?.lastLogin ?? authData.user.last_sign_in_at ?? null,
+        },
+      }),
+    );
+  } catch (error) {
+    return res.status(500).json(errorResponse({ message: error.message || 'Gagal mengambil data akun.' }));
+  }
+};

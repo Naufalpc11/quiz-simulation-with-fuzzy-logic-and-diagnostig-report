@@ -1,5 +1,6 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { ambilProfilSaya } from '../services/profile'
 import { useRouter } from 'vue-router'
 import { getAvatar, getUser, keluar } from '../services/auth'
 import logoImage from '../assets/logo-esikap.png'
@@ -10,6 +11,26 @@ const router = useRouter()
 const user = ref(getUser())
 const avatar = ref(getAvatar() || avatarImage)
 const loggingOut = ref(false)
+
+const bergabung = ref('-')
+const terakhirMasuk = ref('-')
+
+function formatWaktu(iso) {
+  if (!iso) return '-'
+  return new Date(iso).toLocaleString('id-ID', {
+    day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+}
+
+onMounted(async () => {
+  try {
+    const data = await ambilProfilSaya()
+    bergabung.value = formatWaktu(data.bergabung)
+    terakhirMasuk.value = formatWaktu(data.terakhirMasuk)
+  } catch {
+    // Kalau gagal, tetap tampil "-"; data akun lain tidak terganggu.
+  }
+})
 
 async function handleLogout() {
   loggingOut.value = true
@@ -47,11 +68,11 @@ async function handleLogout() {
             </div>
             <div class="account-row">
               <span>Bergabung</span>
-              <strong>-</strong>
+              <strong>{{ bergabung }}</strong>
             </div>
             <div class="account-row border-b-0">
               <span>Terakhir masuk</span>
-              <strong>-</strong>
+              <strong>{{ terakhirMasuk }}</strong>
             </div>
           </div>
         </section>
