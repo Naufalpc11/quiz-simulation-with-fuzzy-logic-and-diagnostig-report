@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminHeader from '../components/AdminHeader.vue'
+import KuisBukanMilik from '../components/KuisBukanMilik.vue'
 import { setNotice, SessionExpiredError } from '../services/auth'
 import { ambilDaftarBab, ambilKuis, ubahKuis } from '../services/kuis'
 
@@ -17,6 +18,8 @@ const memuat = ref(true)
 const gagalMuat = ref(false)
 const menyimpan = ref(false)
 const errorMsg = ref('')
+// Terisi kalau kuis ini dibuat dosen lain: halaman berganti jadi pemberitahuan.
+const kuisLain = ref(null)
 
 const namaBab = computed(() => daftarBab.value.find((b) => b.idBab === form.value.idBab)?.namaBab ?? '')
 
@@ -36,6 +39,7 @@ onMounted(async () => {
     daftarBab.value = bab
     form.value = { judul: kuis.judul, idBab: kuis.idBab, deskripsi: kuis.deskripsi ?? '' }
     idBabAsal.value = kuis.idBab
+    if (kuis.bisaDikelola === false) kuisLain.value = kuis
   } catch (err) {
     gagalMuat.value = true
     tanganiError(err)
@@ -73,7 +77,8 @@ async function simpan() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-wf-page text-wf-text">
+  <KuisBukanMilik v-if="kuisLain" :kuis="kuisLain" :nama-bab="namaBabAsal" />
+  <div v-else class="min-h-screen bg-wf-page text-wf-text">
     <AdminHeader />
 
     <main class="px-4 sm:px-10 lg:px-20 pt-10 pb-14 flex flex-col gap-6">

@@ -37,10 +37,16 @@ function ulangi(item) {
   notice.value = `Kuis "${item.judul}" belum memiliki ID UUID yang valid dari server.`
 }
 
+// Satu bab bisa berisi kuis dari beberapa dosen, jadi ringkasan menyebut
+// semua dosen pembuat kuis di bab ini.
+const daftarPembuat = computed(() => [
+  ...new Set(daftarKuis.value.map((item) => item.namaPembuat).filter(Boolean)),
+])
+
 function formatRingkasan() {
   const jumlah = daftarKuis.value.length
   const soal = daftarKuis.value.reduce((sum, item) => sum + (item.jumlahSoal || 0), 0)
-  return `${jumlah} kuis · ${soal} soal · dibuka oleh ${bab.value?.dibuatOlehNama || 'Guru'}`
+  return `${jumlah} kuis · ${soal} soal · dibuka oleh ${daftarPembuat.value.join(', ') || 'Guru'}`
 }
 
 async function handleLogout() {
@@ -120,6 +126,7 @@ onMounted(async () => {
               <div class="min-w-0 flex-1">
                 <p class="font-mono text-[13px] uppercase tracking-[0.12em] text-wf-secondary">Latihan {{ index + 1 }}</p>
                 <h2 class="mt-2 text-[20px] font-bold">{{ item.judul }}</h2>
+                <p v-if="item.namaPembuat" class="mt-1 text-[15px] font-semibold text-wf-brand">oleh {{ item.namaPembuat }}</p>
                 <p class="mt-1 text-[16px] text-wf-secondary">{{ item.deskripsi || 'Latihan pilihan ganda untuk menguji pemahaman materi.' }}</p>
                 <p class="mt-2 font-mono text-[13px] uppercase tracking-[0.1em] text-wf-muted">
                   {{ item.jumlahSoal || 0 }} soal · bobot 100 poin · durasi {{ item.durasi ?? '—' }} menit

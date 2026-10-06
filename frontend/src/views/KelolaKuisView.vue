@@ -39,8 +39,13 @@ function formatTanggal(iso) {
   return new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+// Bab dipakai bersama, jadi satu bab bisa berisi kuis dari beberapa dosen.
+// bisaDikelola dari backend: false = kuis dosen lain, hanya bisa dilihat.
+const milikSendiri = (kuis) => kuis.bisaDikelola !== false
+
 function keteranganKuis(kuis) {
   const bagian = [`Dibuat ${formatTanggal(kuis.tanggalDibuat)}`]
+  if (kuis.namaPembuat) bagian.push(`oleh ${milikSendiri(kuis) ? 'kamu' : kuis.namaPembuat}`)
   if (kuis.jumlahSoal != null) bagian.push(`${kuis.jumlahSoal} soal`)
   if (kuis.durasi) bagian.push(`${kuis.durasi} menit`)
   if (kuis.deskripsi) bagian.push(kuis.deskripsi)
@@ -195,9 +200,12 @@ async function handleHapus(kuis) {
               >
                 {{ kuis.status === 'terbit' ? 'Terbit' : 'Draf' }}
               </span>
-              <RouterLink :to="`/kuis/${kuis.idKuis}/soal`" class="tombol-aksi">Edit Soal</RouterLink>
-              <RouterLink :to="`/kuis/${kuis.idKuis}/edit`" class="tombol-aksi">Edit</RouterLink>
-              <button type="button" @click="handleHapus(kuis)" class="tombol-aksi-bahaya">Hapus</button>
+              <template v-if="milikSendiri(kuis)">
+                <RouterLink :to="`/kuis/${kuis.idKuis}/soal`" class="tombol-aksi">Edit Soal</RouterLink>
+                <RouterLink :to="`/kuis/${kuis.idKuis}/edit`" class="tombol-aksi">Edit</RouterLink>
+                <button type="button" @click="handleHapus(kuis)" class="tombol-aksi-bahaya">Hapus</button>
+              </template>
+              <RouterLink v-else :to="`/kuis/${kuis.idKuis}/soal`" class="tombol-aksi">Lihat</RouterLink>
             </div>
           </article>
         </section>

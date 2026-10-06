@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import AdminHeader from '../components/AdminHeader.vue'
+import KuisBukanMilik from '../components/KuisBukanMilik.vue'
 import { setNotice, SessionExpiredError } from '../services/auth'
 import {
   TINGKAT_KESULITAN,
@@ -47,6 +48,8 @@ const menyimpan = ref(false)
 const errorMsg = ref('')
 const infoMsg = ref('')
 const sudahCobaSimpan = ref(false)
+// Terisi kalau kuis ini dibuat dosen lain: halaman berganti jadi pemberitahuan.
+const kuisLain = ref(null)
 
 // Kalau kuis sudah terbuat tapi soalnya gagal tersimpan, percobaan
 // berikutnya cukup memperbarui kuis itu, bukan membuat kuis kembar.
@@ -174,6 +177,11 @@ onMounted(async () => {
 
     if (modeEdit.value) {
       const kuis = await ambilKuis(props.id)
+      idBabAsal.value = kuis.idBab
+      if (kuis.bisaDikelola === false) {
+        kuisLain.value = kuis
+        return
+      }
       info.value = {
         judul: kuis.judul,
         idBab: kuis.idBab,
@@ -188,7 +196,6 @@ onMounted(async () => {
         if (!(err instanceof EndpointBelumAdaError)) throw err
         infoMsg.value = 'Soal lama belum bisa dimuat karena endpoint soal belum tersedia di backend.'
       }
-      idBabAsal.value = kuis.idBab
     } else {
       // ?idBab=... dari Kelola Kuis bab itu dipilih lebih dulu, kalau tidak ada pakai bab pertama.
       const dariQuery = daftarBab.value.find((b) => String(b.idBab) === route.query.idBab)
@@ -323,7 +330,8 @@ function hapusBerkas() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-wf-page text-wf-text">
+  <KuisBukanMilik v-if="kuisLain" :kuis="kuisLain" :nama-bab="namaBabAsal" />
+  <div v-else class="min-h-screen bg-wf-page text-wf-text">
     <AdminHeader />
 
     <main class="px-4 sm:px-10 lg:px-20 pt-10 pb-14 flex flex-col gap-6">
