@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { getAvatar, getUser, keluar } from '../services/auth'
 import logoImage from '../assets/logo-esikap.png'
 import avatarImage from '../assets/icons/avatar.svg'
+import StudentHeader from '../components/StudentHeader.vue'
 
 const router = useRouter()
 const user = ref(getUser())
@@ -19,24 +20,7 @@ async function handleLogout() {
 
 <template>
   <div class="min-h-screen bg-wf-page text-wf-text">
-    <header class="border-b border-wf-border bg-wf-card px-6 py-4 sm:px-10 lg:px-[6.7%]">
-      <div class="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4">
-        <div class="flex flex-wrap items-center gap-x-8 gap-y-2 lg:gap-x-10">
-          <RouterLink to="/dashboard" class="block h-10 w-[105px] shrink-0 sm:w-[125px]">
-            <img :src="logoImage" alt="eSikap" class="size-full object-contain" />
-          </RouterLink>
-          <nav class="flex flex-wrap items-center gap-x-7 gap-y-1 text-[16px] sm:text-[17px]">
-            <RouterLink to="/dashboard" class="py-1 text-wf-secondary hover:text-wf-text">Latihan</RouterLink>
-            <RouterLink to="/statistik" class="py-1 text-wf-secondary hover:text-wf-text">Statistik</RouterLink>
-            <RouterLink to="/peta-belajar" class="py-1 text-wf-secondary hover:text-wf-text">Peta belajar</RouterLink>
-          </nav>
-        </div>
-        <div class="flex items-center gap-3 text-sm text-wf-secondary sm:text-[15px]">
-          <span>{{ user?.nama || 'Mahasiswa' }}<span v-if="user?.username"> · {{ user.username }}</span></span>
-          <img :src="avatar" alt="" class="size-8 rounded-full" />
-        </div>
-      </div>
-    </header>
+    <StudentHeader />
 
     <main class="mx-auto max-w-[1200px] px-6 pb-12 pt-10 sm:px-10 lg:px-0">
       <h1 class="text-[28px] font-bold sm:text-[30px]">Akun saya</h1>

@@ -2,7 +2,9 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ambilDaftarBab } from '../services/bab'
+import { ambilDaftarKuis } from '../services/kuis'
 import { getAvatar, getUser, keluar, SessionExpiredError } from '../services/auth'
+import StudentHeader from '../components/StudentHeader.vue'
 import logoImage from '../assets/logo-esikap.png'
 import avatarImage from '../assets/icons/avatar.svg'
 
@@ -10,6 +12,7 @@ const router = useRouter()
 const user = ref(getUser())
 const avatar = ref(getAvatar() || avatarImage)
 const bab = ref([])
+const kuis = ref([])
 const loading = ref(true)
 const errorMsg = ref('')
 const notice = ref('')
@@ -18,19 +21,9 @@ const profileOpen = ref(false)
 const kataPencarian = ref('')
 const filterAktif = ref('semua')
 
-const contohBab = [
-  { namaBab: 'Tanda Baca', kataKunci: 'tanda baca', deskripsi: 'Materi tanda baca', selesai: 1, total: 2 },
-  { namaBab: 'Ejaan', kataKunci: 'ejaan', deskripsi: 'Materi tentang Ejaan Bahasa', selesai: 2, total: 2 },
-  { namaBab: 'Kalimat Efektif', kataKunci: 'kalimat efektif', deskripsi: 'Materi kalimat efektif', selesai: 2, total: 2 },
-  { namaBab: 'Bab 5', kataKunci: 'bab 5', deskripsi: 'Materi kalimat efektif level 2', selesai: 0, total: 0 },
-  { namaBab: 'Kalimat Efektif level 2', kataKunci: 'kalimat efektif level 2', deskripsi: 'Materi kalimat efektif level 2', selesai: 2, total: 2 },
-]
-
 const daftarBab = computed(() => {
-  const sumber = bab.value.length ? bab.value : contohBab
-
   const sudahAda = new Set()
-  return [...sumber]
+  return [...bab.value]
     .sort((a, b) => (a.urutanBab ?? 0) - (b.urutanBab ?? 0))
     .filter((item) => {
       if (item.idBab && sudahAda.has(item.idBab)) return false
@@ -38,13 +31,15 @@ const daftarBab = computed(() => {
       return true
     })
     .map((item) => {
-      const nama = (item.namaBab || '').toLowerCase()
-      const contoh = contohBab.find((data) => nama.includes(data.kataKunci))
+      const kuisBab = kuis.value.filter((quiz) => quiz.idBab === item.idBab)
+      const kuisDibuka = kuisBab.filter((quiz) => quiz.adaPin && Number(quiz.jumlahSoal) > 0)
+      const progresTersedia = Number.isInteger(item.selesai) && Number.isInteger(item.total)
       return {
         ...item,
-        deskripsi: item.deskripsi || contoh?.deskripsi || 'Materi dan latihan pada bab ini.',
-        selesai: item.selesai ?? contoh?.selesai ?? 0,
-        total: item.total ?? contoh?.total ?? 0,
+        deskripsi: item.deskripsi || 'Materi dan latihan pada bab ini.',
+        selesai: progresTersedia ? Math.min(item.selesai, item.total) : 0,
+        total: progresTersedia ? item.total : kuisDibuka.length,
+        kuisTersedia: kuisDibuka.length > 0,
       }
     })
 })
@@ -63,8 +58,8 @@ const babTersaring = computed(() => {
 })
 
 function statusBab(item) {
-  if (item.selesai === 0 && item.total === 0) return { label: 'Belum mulai', kelas: 'bg-wf-no text-white' }
-  if (item.selesai === item.total) return { label: 'Selesai', kelas: 'bg-wf-ok text-white' }
+  if (!item.kuisTersedia) return { label: 'Belum dibuka', kelas: 'bg-wf-no text-white' }
+  if (item.total > 0 && item.selesai === item.total) return { label: 'Selesai', kelas: 'bg-wf-ok text-white' }
   if (item.selesai > 0) return { label: 'Sedang', kelas: 'bg-wf-accent-light text-wf-text border border-wf-accent' }
   return { label: 'Belum mulai', kelas: 'bg-wf-no text-white' }
 }
@@ -90,7 +85,12 @@ async function handleLogout() {
 
 onMounted(async () => {
   try {
-    bab.value = await ambilDaftarBab()
+    const [dataBab, dataKuis] = await Promise.all([
+      ambilDaftarBab(),
+      ambilDaftarKuis(),
+    ])
+    bab.value = dataBab
+    kuis.value = dataKuis
   } catch (err) {
     if (err instanceof SessionExpiredError) {
       router.push('/')
@@ -105,69 +105,7 @@ onMounted(async () => {
 
 <template>
   <div class="min-h-screen bg-wf-page text-wf-text">
-    <header class="border-b border-wf-border bg-wf-card px-6 py-4 sm:px-10 lg:px-[6.7%]">
-      <div class="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4">
-        <div class="flex flex-wrap items-center gap-x-8 gap-y-2 lg:gap-x-10">
-          <RouterLink to="/dashboard" class="block h-10 w-[105px] shrink-0 sm:w-[125px]">
-            <img :src="logoImage" alt="eSikap" class="size-full object-contain" />
-          </RouterLink>
-          <nav class="flex flex-wrap items-center gap-x-7 gap-y-1 text-[16px] sm:text-[17px]">
-            <RouterLink to="/dashboard" class="border-b-2 border-wf-brand py-1 text-wf-text">
-              Latihan
-            </RouterLink>
-            <RouterLink to="/statistik" class="py-1 text-wf-secondary hover:text-wf-text">
-              Statistik
-            </RouterLink>
-            <RouterLink to="/peta-belajar" class="py-1 text-wf-secondary hover:text-wf-text">
-              Peta belajar
-            </RouterLink>
-          </nav>
-        </div>
-
-        <div class="relative flex items-center gap-3 text-sm text-wf-secondary sm:text-[15px]">
-          <button
-            type="button"
-            class="flex items-center gap-3 rounded-lg px-2 py-1 text-left hover:bg-wf-muted-surface focus:outline-none focus:ring-2 focus:ring-wf-brand/20"
-            aria-haspopup="menu"
-            :aria-expanded="profileOpen"
-            @click="profileOpen = !profileOpen"
-          >
-            <span>{{ user?.nama || 'Mahasiswa' }}<span v-if="user?.username"> · {{ user.username }}</span></span>
-            <img :src="avatar" alt="" class="size-8 shrink-0 rounded-full object-cover" />
-          </button>
-          <div
-            v-if="profileOpen"
-            class="absolute right-0 top-12 z-20 w-64 overflow-hidden rounded-lg border border-wf-border-subtle bg-wf-card shadow-lg"
-            role="menu"
-          >
-            <div class="border-b border-wf-border-subtle px-4 py-3">
-              <p class="font-semibold text-wf-text">{{ user?.nama || 'Mahasiswa' }}</p>
-              <p class="mt-1 break-all text-xs text-wf-secondary">{{ user?.email || 'Email tidak tersedia' }}</p>
-              <p class="mt-2 inline-block rounded border border-wf-brand-border px-2 py-0.5 text-xs text-wf-brand">
-                {{ user?.role || 'Mahasiswa' }}
-              </p>
-            </div>
-            <RouterLink
-              to="/profil"
-              role="menuitem"
-              class="block px-4 py-3 text-sm text-wf-text hover:bg-wf-muted-surface"
-              @click="profileOpen = false"
-            >
-              Akun saya
-            </RouterLink>
-            <button
-              type="button"
-              role="menuitem"
-              class="block w-full border-t border-wf-border-subtle px-4 py-3 text-left text-sm text-wf-no-text hover:bg-red-50 disabled:opacity-60"
-              :disabled="loggingOut"
-              @click="handleLogout"
-            >
-              {{ loggingOut ? 'Keluar...' : 'Keluar' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </header>
+    <StudentHeader active="latihan" />
 
     <main class="mx-auto max-w-[1200px] px-6 pb-12 pt-9 sm:px-10 lg:px-0">
       <section class="mb-5">
@@ -251,7 +189,6 @@ onMounted(async () => {
           <button
             type="button"
             class="mt-5 w-full rounded-xl border border-wf-brand-border px-4 py-3 text-[18px] font-bold text-wf-brand transition hover:bg-wf-brand-soft focus:outline-none focus:ring-2 focus:ring-wf-brand/30"
-            :class="{ 'border-wf-accent bg-wf-accent text-white hover:bg-wf-accent-hover': index === 0 }"
             @click="bukaBab(item)"
           >
             BUKA BAB <span aria-hidden="true" class="ml-1 text-[22px] leading-none">→</span>
