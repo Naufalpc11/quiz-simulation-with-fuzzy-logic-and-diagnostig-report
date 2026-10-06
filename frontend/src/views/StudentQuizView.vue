@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   mulaiPengerjaanKuis,
@@ -7,6 +7,7 @@ import {
   submitPengerjaanKuis,
 } from '../services/kuis'
 import { SessionExpiredError } from '../services/auth'
+import MathText from '../components/MathText.vue'
 
 const props = defineProps({ id: { type: String, required: true } })
 const router = useRouter()
@@ -17,7 +18,7 @@ const waktuPerSoal = ref({})
 const ragu = ref(new Set())
 const nomorAktif = ref(0)
 const sisaDetik = ref(0)
-const loading = ref(true)
+const loading = ref(false)
 const errorMsg = ref('')
 const submitted = ref(false)
 const submitting = ref(false)
@@ -25,6 +26,14 @@ const idPengerjaan = ref('')
 let timerId
 let waktuMulaiSoal = 0
 let saveQueue = Promise.resolve()
+
+// ── PIN dari dosen ──
+// Pop-up muncul begitu halaman dibuka (setelah klik MULAI). Pengerjaan baru dibuat
+// di backend setelah PIN benar; kalau salah, backend menolak dan soal tidak dimuat.
+const tampilPin = ref(true)
+const pinInput = ref('')
+const errorPin = ref('')
+const memeriksaPin = ref(false)
 
 const soalAktif = computed(() => soal.value[nomorAktif.value])
 const terjawab = computed(() => Object.keys(jawaban.value).length)
@@ -151,37 +160,57 @@ watch(nomorAktif, (_, previousIndex) => {
   simpanJawabanKeServer()
 })
 
-onMounted(async () => {
+// Membuat pengerjaan di backend (PIN diperiksa di sana) lalu memuat soal.
+async function mulaiKuis(pin) {
+  const data = await mulaiPengerjaanKuis(props.id, pin)
+  idPengerjaan.value = data.pengerjaan.idPengerjaan
+  kuis.value = data.kuis
+  soal.value = data.soal
+  waktuMulaiServer.value = data.pengerjaan.waktuMulai
+  batasWaktu.value = Math.max(1, Number(data.kuis.durasi) || 30) * 60
+
+  const jawabanTersimpan = new Map(data.jawaban.map((answer) => [answer.idSoal, answer]))
+  soal.value.forEach((question, index) => {
+    const saved = jawabanTersimpan.get(question.idSoal)
+    if (!saved) return
+    const optionIndex = question.opsi.findIndex((option) => option.idOpsi === saved.idOpsi)
+    if (optionIndex !== -1) jawaban.value[index] = optionIndex
+    waktuPerSoal.value[question.idSoal] = Number(saved.responseTime) || 0
+  })
+
+  hitungMundur()
+  if (sisaDetik.value > 0) timerId = window.setInterval(hitungMundur, 1000)
+  waktuMulaiSoal = Date.now()
+}
+
+async function verifikasiPin() {
+  const pin = pinInput.value.trim()
+  if (!pin) {
+    errorPin.value = 'Masukkan PIN dari dosen.'
+    return
+  }
+
+  errorPin.value = ''
+  memeriksaPin.value = true
   try {
-    const data = await mulaiPengerjaanKuis(props.id)
-    idPengerjaan.value = data.pengerjaan.idPengerjaan
-    kuis.value = data.kuis
-    soal.value = data.soal
-    waktuMulaiServer.value = data.pengerjaan.waktuMulai
-    batasWaktu.value = Math.max(1, Number(data.kuis.durasi) || 30) * 60
-
-    const jawabanTersimpan = new Map(data.jawaban.map((answer) => [answer.idSoal, answer]))
-    soal.value.forEach((question, index) => {
-      const saved = jawabanTersimpan.get(question.idSoal)
-      if (!saved) return
-      const optionIndex = question.opsi.findIndex((option) => option.idOpsi === saved.idOpsi)
-      if (optionIndex !== -1) jawaban.value[index] = optionIndex
-      waktuPerSoal.value[question.idSoal] = Number(saved.responseTime) || 0
-    })
-
-    hitungMundur()
-    if (sisaDetik.value > 0) timerId = window.setInterval(hitungMundur, 1000)
-    waktuMulaiSoal = Date.now()
+    await mulaiKuis(pin)
+    tampilPin.value = false
   } catch (err) {
     if (err instanceof SessionExpiredError) {
       router.push('/')
       return
     }
-    errorMsg.value = err.message
+    // Pesan dari backend, mis. "PIN salah." atau "Kuis ini belum dibuka oleh dosen."
+    errorPin.value = err.message
+    pinInput.value = ''
   } finally {
-    loading.value = false
+    memeriksaPin.value = false
   }
-})
+}
+
+function batalPin() {
+  router.back()
+}
 
 onBeforeUnmount(() => window.clearInterval(timerId))
 </script>
@@ -199,7 +228,7 @@ onBeforeUnmount(() => window.clearInterval(timerId))
             <p class="font-semibold uppercase tracking-[0.08em] text-wf-secondary">Sisa waktu</p>
             <strong class="text-[20px]">{{ waktu }}</strong>
           </div>
-          <button type="button" :disabled="submitting" class="rounded-xl border border-wf-brand-border px-5 py-3 text-[18px] font-semibold text-wf-brand hover:bg-wf-brand-soft disabled:opacity-50" @click="keluarUjian">
+          <button type="button" :disabled="submitting || tampilPin" class="rounded-xl border border-wf-brand-border px-5 py-3 text-[18px] font-semibold text-wf-brand hover:bg-wf-brand-soft disabled:opacity-50" @click="keluarUjian">
             KELUAR UJIAN
           </button>
         </div>
@@ -211,6 +240,8 @@ onBeforeUnmount(() => window.clearInterval(timerId))
 
     <main class="mx-auto max-w-[990px] px-6 pb-12 pt-9 sm:px-10 lg:px-0">
       <p v-if="loading" class="text-wf-secondary">Memuat soal...</p>
+      <!-- Soal baru tampil setelah PIN benar; selama pop-up PIN terbuka, area ini kosong -->
+      <div v-else-if="tampilPin"></div>
       <div v-else-if="errorMsg" role="alert" class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-wf-no-text">
         <p>{{ errorMsg }}</p>
         <button v-if="idPengerjaan" type="button" class="mt-3 font-semibold underline" @click="errorMsg = ''; kirimJawaban(true)">Coba kirim jawaban lagi</button>
@@ -229,7 +260,7 @@ onBeforeUnmount(() => window.clearInterval(timerId))
               <span class="rounded-md border border-wf-brand-border px-2 py-1 text-sm text-wf-secondary">Tingkat: {{ soalAktif.difficulty || 'Mudah' }}</span>
             </div>
           </div>
-          <h2 class="mt-6 text-[18px] font-bold leading-6">{{ soalAktif.pertanyaan }}</h2>
+          <h2 class="mt-6 text-[18px] font-bold leading-6"><MathText :teks="soalAktif.pertanyaan" /></h2>
           <p class="mt-5 font-mono text-[15px] text-wf-secondary">Pilih salah satu:</p>
           <div class="mt-5 flex flex-col gap-3">
             <label
@@ -240,7 +271,7 @@ onBeforeUnmount(() => window.clearInterval(timerId))
             >
               <input v-model="jawaban[nomorAktif]" type="radio" :value="indexOpsi" :disabled="submitting" class="size-5 accent-wf-brand" @change="pilihJawaban(indexOpsi)" />
               <span class="font-semibold">{{ String.fromCharCode(65 + indexOpsi) }}</span>
-              <span>{{ formatOpsi(opsi.opsi) }}</span>
+              <span><MathText :teks="formatOpsi(opsi.opsi)" /></span>
             </label>
           </div>
           <div class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-wf-border-subtle pt-5">
@@ -289,6 +320,53 @@ onBeforeUnmount(() => window.clearInterval(timerId))
       </section>
       <p v-else class="rounded-md border border-wf-border-subtle bg-wf-card p-8 text-center text-wf-secondary">Soal untuk kuis ini belum tersedia.</p>
     </main>
+
+    <!-- ════════ POP-UP PIN ════════ -->
+    <div v-if="tampilPin" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <form
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="judul-pin"
+        class="w-full max-w-[440px] bg-wf-card border border-wf-border-subtle rounded-xl p-6 flex flex-col gap-5 shadow-lg"
+        @submit.prevent="verifikasiPin"
+      >
+        <div class="flex flex-col gap-1">
+          <p class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">MULAI KUIS</p>
+          <h2 id="judul-pin" class="text-[22px] leading-[30px] font-semibold">Masukkan PIN</h2>
+          <p class="text-[15px] leading-6 text-wf-secondary">Masukkan PIN yang diberikan dosen untuk mulai mengerjakan.</p>
+        </div>
+
+        <label class="flex flex-col gap-2">
+          <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-muted">PIN KUIS</span>
+          <input
+            v-model="pinInput"
+            type="text"
+            maxlength="8"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            autofocus
+            :disabled="memeriksaPin"
+            placeholder="8 karakter"
+            class="bg-wf-card border border-wf-border rounded-md p-4 text-center font-mono text-[22px] leading-7 tracking-[3px] placeholder:text-wf-muted placeholder:tracking-normal placeholder:text-[17px] focus:outline-none focus:ring-2 focus:ring-wf-brand"
+            :class="errorPin ? 'border-wf-no' : ''"
+          />
+        </label>
+
+        <p v-if="errorPin" role="alert" class="rounded-md bg-red-50 border border-wf-no-border px-4 py-3 text-[15px] text-wf-no-text">
+          {{ errorPin }}
+        </p>
+
+        <div class="flex justify-end gap-3">
+          <button type="button" :disabled="memeriksaPin" class="rounded-xl border border-wf-brand-border px-5 py-3 text-[17px] font-semibold text-wf-brand hover:bg-wf-brand-soft disabled:opacity-50" @click="batalPin">
+            BATAL
+          </button>
+          <button type="submit" :disabled="memeriksaPin" class="rounded-xl bg-wf-accent hover:bg-wf-accent-hover px-5 py-3 text-[17px] font-semibold tracking-[0.2px] text-white disabled:opacity-60">
+            {{ memeriksaPin ? 'MEMERIKSA...' : 'MULAI' }}
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </template>
 
