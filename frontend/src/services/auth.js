@@ -116,7 +116,7 @@ export async function kirimTerautentikasi(path, { method = 'POST', body } = {}) 
 
   if (hasil.res.status === 401) {
     clearSession()
-    setNotice('Sesi kamu sudah berakhir. Silakan login kembali.')
+    setNotice('Sesi Anda sudah berakhir. Silakan login kembali.')
     throw new SessionExpiredError(hasil.payload?.message || 'Sesi berakhir. Silakan login kembali.')
   }
 

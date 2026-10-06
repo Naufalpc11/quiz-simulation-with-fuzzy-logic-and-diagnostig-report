@@ -67,7 +67,7 @@ onMounted(async () => {
       <p v-else-if="errorMsg" role="alert" class="mt-7 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-wf-no-text">{{ errorMsg }}</p>
       <template v-else>
         <h1 class="mt-5 text-[27px] font-bold sm:text-[30px]">Laporan diagnostik</h1>
-        <p class="mt-1 text-[16px] text-wf-secondary">{{ kuis?.judul || 'Kuis' }} · berdasarkan pola jawaban dan waktu pengerjaanmu</p>
+        <p class="mt-1 text-[16px] text-wf-secondary">{{ kuis?.judul || 'Kuis' }} · berdasarkan pola jawaban dan waktu pengerjaan Anda</p>
 
         <section class="mt-6 grid gap-4 sm:grid-cols-3">
           <article class="rounded-md border border-wf-border-subtle bg-wf-card p-5">

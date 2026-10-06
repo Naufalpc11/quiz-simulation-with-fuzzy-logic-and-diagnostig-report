@@ -129,7 +129,7 @@ onMounted(async () => {
             <ul class="mt-3 flex flex-col gap-2">
               <li v-for="option in item.opsi" :key="option.idOpsi" :class="option.isCorrect ? 'font-semibold text-green-700' : option.dipilih ? 'text-red-700' : 'text-wf-secondary'">
                 {{ option.isCorrect ? '✓ ' : option.dipilih ? '× ' : '' }}{{ option.opsi }}
-                <span v-if="option.dipilih">(jawabanmu)</span>
+                <span v-if="option.dipilih">(jawaban Anda)</span>
                 <span v-if="option.isCorrect">(jawaban benar)</span>
               </li>
             </ul>
