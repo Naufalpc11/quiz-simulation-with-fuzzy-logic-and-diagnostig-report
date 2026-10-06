@@ -53,10 +53,39 @@ export const getAllKuis = async (req, res) => {
       return res.status(500).json(errorResponse({ message: error.message }));
     }
 
-    const daftar = data.map(({ Soal, ...kuis }) => ({
-      ...keRespons(kuis, req.currentUser),
-      jumlahSoal: Soal[0]?.count ?? 0,
-    }));
+    const idKuis = data.map((kuis) => kuis.idKuis);
+    const riwayatPerKuis = new Map();
+    if (idKuis.length) {
+      const { data: riwayat, error: riwayatError } = await supabaseAdmin
+        .from('PengerjaanKuis')
+        .select('idPengerjaan, idKuis, skorFuzzy, kategoriFuzzy, akurasi, waktuSelesai')
+        .eq('idUser', req.currentUser.id)
+        .eq('status', 'selesai')
+        .in('idKuis', idKuis)
+        .order('waktuSelesai', { ascending: false });
+
+      if (riwayatError) {
+        return res.status(500).json(errorResponse({ message: riwayatError.message }));
+      }
+      for (const hasil of riwayat || []) {
+        if (!riwayatPerKuis.has(hasil.idKuis)) riwayatPerKuis.set(hasil.idKuis, hasil);
+      }
+    }
+
+    const daftar = data.map(({ Soal, ...kuis }) => {
+      const hasilTerakhir = riwayatPerKuis.get(kuis.idKuis);
+      const tersedia = kuis.pin !== null && (Soal[0]?.count ?? 0) > 0;
+      return {
+        ...keRespons(kuis, req.currentUser),
+        jumlahSoal: Soal[0]?.count ?? 0,
+        tersedia,
+        nilaiTerakhir: hasilTerakhir?.skorFuzzy ?? null,
+        kategoriTerakhir: hasilTerakhir?.kategoriFuzzy ?? null,
+        akurasiTerakhir: hasilTerakhir?.akurasi ?? null,
+        idPengerjaanTerakhir: hasilTerakhir?.idPengerjaan ?? null,
+        statusBelajar: hasilTerakhir ? 'Selesai' : tersedia ? 'Tersedia' : 'Belum dibuka',
+      };
+    });
 
     return res.json(
       successResponse({ message: 'Berhasil mengambil daftar kuis.', data: daftar }),

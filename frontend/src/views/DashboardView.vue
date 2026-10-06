@@ -32,13 +32,15 @@ const daftarBab = computed(() => {
     })
     .map((item) => {
       const kuisBab = kuis.value.filter((quiz) => quiz.idBab === item.idBab)
-      const kuisDibuka = kuisBab.filter((quiz) => quiz.adaPin && Number(quiz.jumlahSoal) > 0)
+      const kuisDibuka = kuisBab.filter((quiz) => quiz.tersedia)
       const progresTersedia = Number.isInteger(item.selesai) && Number.isInteger(item.total)
       return {
         ...item,
         deskripsi: item.deskripsi || 'Materi dan latihan pada bab ini.',
-        selesai: progresTersedia ? Math.min(item.selesai, item.total) : 0,
-        total: progresTersedia ? item.total : kuisDibuka.length,
+        selesai: kuisDibuka.length
+          ? kuisDibuka.filter((quiz) => quiz.statusBelajar === 'Selesai').length
+          : progresTersedia ? Math.min(item.selesai, item.total) : 0,
+        total: kuisDibuka.length || (progresTersedia ? item.total : 0),
         kuisTersedia: kuisDibuka.length > 0,
       }
     })

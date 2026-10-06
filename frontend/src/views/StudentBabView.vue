@@ -23,14 +23,20 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3
 const daftarKuis = computed(() => kuis.value)
 
 function statusKuis(item) {
-  return item.statusBelajar || 'Tersedia'
+  return item.statusBelajar || (item.tersedia ? 'Tersedia' : 'Belum dibuka')
 }
 
 function statusKelas(status) {
-  return status === 'Perlu diulang' ? 'bg-wf-no text-white' : 'bg-wf-ok text-white'
+  if (status === 'Selesai') return 'bg-wf-ok text-white'
+  if (status === 'Belum dibuka') return 'bg-wf-no text-white'
+  return 'bg-wf-brand-soft text-wf-text border border-wf-brand-border'
 }
 
 function ulangi(item) {
+  if (!item.tersedia) {
+    notice.value = `Kuis "${item.judul}" belum dibuka oleh dosen.`
+    return
+  }
   if (typeof item.idKuis === 'string' && UUID_PATTERN.test(item.idKuis)) {
     router.push(`/kuis/${item.idKuis}/kerjakan`)
     return
@@ -124,10 +130,14 @@ onMounted(async () => {
                   <span class="rounded-md px-2 py-1 text-[16px] font-semibold" :class="statusKelas(statusKuis(item))">
                     {{ statusKuis(item) }}
                   </span>
-                  <p class="mt-3 font-mono text-[13px] text-wf-secondary">Nilai terakhir —</p>
+                  <p class="mt-3 font-mono text-[13px] text-wf-secondary">
+                    Nilai terakhir:
+                    <strong v-if="item.nilaiTerakhir !== null" class="text-wf-text">{{ item.nilaiTerakhir }}</strong>
+                    <span v-else>—</span>
+                  </p>
                 </div>
-                <button type="button" class="rounded-xl border border-wf-brand-border px-5 py-4 text-[20px] font-semibold text-wf-brand hover:bg-wf-brand-soft" @click="ulangi(item)">
-                  MULAI
+                <button type="button" class="rounded-xl border border-wf-brand-border px-5 py-4 text-[20px] font-semibold text-wf-brand hover:bg-wf-brand-soft disabled:cursor-not-allowed disabled:opacity-50" :disabled="!item.tersedia" @click="ulangi(item)">
+                  {{ item.statusBelajar === 'Selesai' ? 'ULANGI' : 'MULAI' }}
                 </button>
               </div>
             </div>
