@@ -146,3 +146,22 @@ export async function ambilPembahasanPengerjaan(idPengerjaan) {
   })
   return payload.data
 }
+
+export async function importSoalPdf({ file, idKuis, startPage, endPage, upload = true }) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('idKuis', idKuis)
+  formData.append('startPage', String(startPage))
+  formData.append('endPage', String(endPage))
+  formData.append('upload', String(upload))
+
+  const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:3000'}/api/soal/import-pdf`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    body: formData, // jangan set Content-Type manual
+  })
+
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok && res.status !== 207) throw new Error(data.message || 'Gagal mengimpor soal dari PDF.')
+  return data
+}

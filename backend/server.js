@@ -6,7 +6,8 @@ import kuisRoute from './routes/kuisRoute.js';
 import soalRoute from './routes/soalRoute.js';
 import profileRoute from './routes/profilRoute.js';
 import pengerjaanRoute from './routes/pengerjaanRoute.js';
-import profilRoute from './routes/profilRoute.js';
+import soalImportRoute from './routes/soalImportRoute.js';
+
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -53,11 +54,10 @@ app.use('/api/auth', authRoute);
 // app.use('/api/', accountRoute);
 app.use('/api/bab', babRoute);
 app.use('/api/kuis', kuisRoute);
-app.use('/api/soal', soalRoute);
+app.use('/api/soal', soalImportRoute, soalRoute);
 app.use('/api/account', accountRoute);
 app.use('/api/profile', profileRoute);
 app.use('/api/pengerjaan', pengerjaanRoute);
-app.use('/api/profile', profilRoute);
 
 app.get('/health', async (_, res) => {
   try {

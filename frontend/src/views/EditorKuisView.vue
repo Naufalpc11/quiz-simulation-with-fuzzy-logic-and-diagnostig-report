@@ -15,6 +15,7 @@ import {
   ubahKuis,
   ambilSoalKuis,
   simpanSoalKuis,
+  importSoalPdf,
 } from '../services/kuis'
 import { keMathLive, keFormatSimpan } from '../utils/mathLive'
 import pencilIcon from '../assets/icons/pencil.svg'
@@ -39,8 +40,6 @@ const modeEdit = computed(() => Boolean(props.id))
 const metode = ref('manual')
 
 const daftarBab = ref([])
-// durasi = lama pengerjaan seluruh kuis (menit). Default 30 sama dengan
-// default kolom Kuis.durasi di database.
 const info = ref({ judul: '', idBab: null, deskripsi: '', durasi: 30 })
 const daftarSoal = ref([soalKosong()])
 const indeksAktif = ref(0)
@@ -50,7 +49,6 @@ const menyimpan = ref(false)
 const errorMsg = ref('')
 const infoMsg = ref('')
 const sudahCobaSimpan = ref(false)
-// Terisi kalau kuis ini dibuat dosen lain: halaman berganti jadi pemberitahuan.
 const kuisLain = ref(null)
 
 // Kalau kuis sudah terbuat tapi soalnya gagal tersimpan, percobaan
@@ -63,13 +61,8 @@ function soalKosong() {
     opsi: ['', '', '', '', ''],
     kunci: null,
     difficulty: 'Sedang',
-    // Tidak diisi lewat editor; 60 detik sama dengan default kolom Soal.targetTime.
-    // Soal lama tetap membawa nilainya sendiri dari backend.
     targetTime: 60,
     pembahasan: '',
-    // Isian ringkasan tidak ditampilkan lagi. Nilainya tetap dibawa saat menyimpan
-    // karena PUT /kuis/:id/soal mengganti seluruh soal; tanpa ini ringkasan yang
-    // sudah tersimpan akan ikut terhapus.
     ringkasan: '',
   }
 }
@@ -79,14 +72,11 @@ const namaBabAktif = computed(
   () => daftarBab.value.find((b) => b.idBab === info.value.idBab)?.namaBab ?? '',
 )
 
-// Bab asal halaman ini (Kelola Kuis bab itu). Dipakai breadcrumb dan tombol
-// Batal supaya kembali ke tempat admin datang.
 const idBabAsal = ref(null)
 const namaBabAsal = computed(() => daftarBab.value.find((b) => b.idBab === idBabAsal.value)?.namaBab ?? '')
 const tautanKembali = computed(() => (idBabAsal.value ? `/bab/${idBabAsal.value}/kuis` : '/bab'))
 
-// ── Pratinjau teks (untuk dsb. daftar opsi di kolom kanan) ──
-// Field menyimpan $...$; untuk cuplikan pendek, rumus diganti ellipsis.
+// ── Pratinjau teks ──
 function intisari(teks) {
   return (teks ?? '')
     .replace(/\$\$[\s\S]+?\$\$/g, ' ⋯ ')
@@ -96,7 +86,6 @@ function intisari(teks) {
 }
 
 // ── Validasi ──
-
 function masalahSoal(s) {
   if (!s.pertanyaan.trim()) return 'pertanyaan masih kosong'
   if (s.opsi.length < MIN_OPSI) return `minimal ${MIN_OPSI} opsi jawaban`
@@ -115,7 +104,6 @@ function kelasNomor(i) {
 }
 
 // ── Navigasi soal ──
-
 function pindahKe(i) {
   indeksAktif.value = i
 }
@@ -138,7 +126,6 @@ function hapusSoalAktif() {
 }
 
 // ── Opsi jawaban ──
-
 function tambahOpsi() {
   if (soal.value.opsi.length < MAKS_OPSI) soal.value.opsi.push('')
 }
@@ -147,13 +134,11 @@ function hapusOpsi(i) {
   const s = soal.value
   if (s.opsi.length <= MIN_OPSI) return
   s.opsi.splice(i, 1)
-  // Kunci ikut bergeser karena huruf opsi setelahnya ikut maju satu.
   if (s.kunci === i) s.kunci = null
   else if (s.kunci !== null && s.kunci > i) s.kunci -= 1
 }
 
 // ── Perubahan belum tersimpan ──
-
 const snapshotAwal = ref('')
 const bersih = ref(false)
 
@@ -172,7 +157,6 @@ function cegahTutupTab(e) {
 }
 
 // ── Muat data ──
-
 function tanganiError(err) {
   if (err instanceof SessionExpiredError) {
     bersih.value = true
@@ -195,7 +179,6 @@ onMounted(async () => {
         return
       }
       info.value = {
-        // Judul = teks biasa, tidak lewat konversi math.
         judul: kuis.judul,
         idBab: kuis.idBab,
         deskripsi: keMathLive(kuis.deskripsi ?? ''),
@@ -205,7 +188,6 @@ onMounted(async () => {
       try {
         const soalLama = await ambilSoalKuis(props.id)
         if (soalLama.length) {
-          // Data dari backend pakai \( \); ubah ke $ ... $ supaya MathLive bisa baca.
           daftarSoal.value = soalLama.map((s) => ({
             ...s,
             pertanyaan: keMathLive(s.pertanyaan),
@@ -218,7 +200,6 @@ onMounted(async () => {
         infoMsg.value = 'Soal lama belum bisa dimuat karena endpoint soal belum tersedia di backend.'
       }
     } else {
-      // ?idBab=... dari Kelola Kuis bab itu dipilih lebih dulu, kalau tidak ada pakai bab pertama.
       const dariQuery = daftarBab.value.find((b) => String(b.idBab) === route.query.idBab)
       info.value.idBab = (dariQuery ?? daftarBab.value[0])?.idBab ?? null
       idBabAsal.value = dariQuery?.idBab ?? null
@@ -236,8 +217,7 @@ onBeforeUnmount(() => {
   if (urlBerkas.value) URL.revokeObjectURL(urlBerkas.value)
 })
 
-// ── Simpan ──
-
+// ── Simpan (Input Manual) ──
 async function simpan() {
   errorMsg.value = ''
   infoMsg.value = ''
@@ -251,7 +231,6 @@ async function simpan() {
     errorMsg.value = 'Pilih bab untuk kuis ini.'
     return
   }
-  // Aturan yang sama dengan createKuis/updateKuis di backend.
   if (!Number.isInteger(info.value.durasi) || info.value.durasi <= 0) {
     errorMsg.value = 'Durasi kuis harus bilangan bulat lebih dari 0 menit.'
     return
@@ -265,14 +244,11 @@ async function simpan() {
 
   menyimpan.value = true
   const dataKuis = {
-    // Judul disimpan mentah sebagai teks biasa.
     judul: info.value.judul.trim(),
     idBab: info.value.idBab,
     deskripsi: keFormatSimpan(info.value.deskripsi).trim() || null,
     durasi: info.value.durasi,
   }
-  // Nilai field MathLive pakai $...$; kembalikan ke \( \) sebelum kirim ke backend
-  // supaya format di DB konsisten dengan data lama.
   const dataSoal = daftarSoal.value.map((s) => ({
     ...s,
     pertanyaan: keFormatSimpan(s.pertanyaan),
@@ -292,7 +268,6 @@ async function simpan() {
 
     bersih.value = true
     setNotice(`Kuis "${dataKuis.judul}" berhasil disimpan dengan ${daftarSoal.value.length} soal.`)
-    // Ke Kelola Kuis bab tempat kuis ini disimpan (bisa beda kalau bab-nya diganti).
     router.push(`/bab/${dataKuis.idBab}/kuis`)
   } catch (err) {
     if (err instanceof EndpointBelumAdaError) {
@@ -312,15 +287,22 @@ function batal() {
 }
 
 // ── Tab Dokumen ──
+// Memanggil POST /api/soal/import-pdf (hanya PDF, maks 50 MB, sesuai backend).
 
-const TIPE_DOKUMEN = ['pdf', 'doc', 'docx']
-const MAKS_UKURAN = 10 * 1024 * 1024
+const TIPE_DOKUMEN = ['pdf']
+const MAKS_UKURAN = 50 * 1024 * 1024
 
 const berkas = ref(null)
 const urlBerkas = ref('')
 const errorBerkas = ref('')
 const sedangSeret = ref(false)
 const inputBerkas = ref(null)
+
+// Rentang halaman PDF yang berisi soal (di extract_soal.js: 55 sampai 103)
+const halamanAwal = ref(1)
+const halamanAkhir = ref(1)
+// Laporan dari backend: { message, total, berhasil: [], gagal: [] }
+const hasilImpor = ref(null)
 
 function ekstensi(nama) {
   return nama.split('.').pop().toLowerCase()
@@ -334,11 +316,11 @@ function pilihBerkas(file) {
   errorBerkas.value = ''
   if (!file) return
   if (!TIPE_DOKUMEN.includes(ekstensi(file.name))) {
-    errorBerkas.value = 'Format berkas harus PDF, DOC, atau DOCX.'
+    errorBerkas.value = 'Format berkas harus PDF.'
     return
   }
   if (file.size > MAKS_UKURAN) {
-    errorBerkas.value = 'Ukuran berkas maksimal 10 MB.'
+    errorBerkas.value = 'Ukuran berkas maksimal 50 MB.'
     return
   }
   if (urlBerkas.value) URL.revokeObjectURL(urlBerkas.value)
@@ -355,7 +337,82 @@ function hapusBerkas() {
   if (urlBerkas.value) URL.revokeObjectURL(urlBerkas.value)
   berkas.value = null
   urlBerkas.value = ''
+  hasilImpor.value = null
   if (inputBerkas.value) inputBerkas.value.value = ''
+}
+
+function lanjutKeKelola() {
+  bersih.value = true
+  router.push(`/bab/${info.value.idBab}/kuis`)
+}
+
+async function simpanDokumen() {
+  errorMsg.value = ''
+  hasilImpor.value = null
+
+  if (!info.value.judul.trim()) {
+    errorMsg.value = 'Nama kuis wajib diisi.'
+    return
+  }
+  if (!info.value.idBab) {
+    errorMsg.value = 'Pilih bab untuk kuis ini.'
+    return
+  }
+  if (!Number.isInteger(info.value.durasi) || info.value.durasi <= 0) {
+    errorMsg.value = 'Durasi kuis harus bilangan bulat lebih dari 0 menit.'
+    return
+  }
+  if (!berkas.value) {
+    errorMsg.value = 'Pilih berkas PDF terlebih dahulu.'
+    return
+  }
+  if (
+    !Number.isInteger(halamanAwal.value) ||
+    !Number.isInteger(halamanAkhir.value) ||
+    halamanAwal.value < 1 ||
+    halamanAkhir.value < halamanAwal.value
+  ) {
+    errorMsg.value = 'Rentang halaman tidak valid.'
+    return
+  }
+
+  menyimpan.value = true
+  try {
+    // 1) Buat kuis dulu supaya punya idKuis (backend butuh idKuis untuk menyimpan soal).
+    //    Kalau impor gagal lalu dicoba lagi, kuis yang sama dipakai, bukan dibuat kembar.
+    if (!idKuisTersimpan.value) {
+      const kuis = await buatKuis({
+        judul: info.value.judul.trim(),
+        idBab: info.value.idBab,
+        deskripsi: null,
+        durasi: info.value.durasi,
+      })
+      idKuisTersimpan.value = kuis.idKuis
+    }
+
+    // 2) Kirim PDF + rentang halaman ke backend. Backend yang mengekstrak dan menyimpan soal.
+    const hasil = await importSoalPdf({
+      file: berkas.value,
+      idKuis: idKuisTersimpan.value,
+      startPage: halamanAwal.value,
+      endPage: halamanAkhir.value,
+    })
+    hasilImpor.value = hasil
+
+    if (hasil.berhasil?.length > 0 && !hasil.gagal?.length) {
+      // Semua soal berhasil → langsung pindah halaman
+      bersih.value = true
+      setNotice(`Kuis "${info.value.judul.trim()}" berhasil dibuat dengan ${hasil.berhasil.length} soal.`)
+      router.push(`/bab/${info.value.idBab}/kuis`)
+    } else if (!hasil.berhasil?.length) {
+      errorMsg.value = hasil.message
+    }
+    // Kalau sebagian gagal: tetap di halaman, daftar soal gagal ditampilkan di bawah.
+  } catch (err) {
+    tanganiError(err)
+  } finally {
+    menyimpan.value = false
+  }
 }
 </script>
 
@@ -497,8 +554,6 @@ function hapusBerkas() {
                 placeholder="Tulis pertanyaan di sini."
               />
 
-              <!-- Posisi mengikuti Figma, tapi nilainya milik kuis (Kuis.durasi),
-                   jadi tetap sama saat berpindah soal. -->
               <label class="flex flex-col gap-2 w-full sm:w-[360px] mt-1">
                 <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">DURASI (MENIT)</span>
                 <input
@@ -675,26 +730,49 @@ function hapusBerkas() {
       >
         <div class="flex flex-col gap-1">
           <h2 class="text-[22px] leading-[30px] font-semibold">Unggah dokumen kuis</h2>
-          <p class="text-[17px] leading-6 text-wf-secondary">Lampirkan PDF atau dokumen berisi soal dan kunci jawaban.</p>
+          <p class="text-[17px] leading-6 text-wf-secondary">
+            Lampirkan PDF berisi soal, kunci jawaban, dan pembahasan. Soal diekstrak otomatis dari rentang halaman yang dipilih.
+          </p>
         </div>
 
-        <p role="status" class="rounded-md bg-amber-50 border border-amber-200 px-4 py-3 text-[15px] text-amber-800">
-          Segera hadir: ekstraksi soal dari dokumen masih dikerjakan di backend. Untuk sekarang gunakan
-          <button type="button" class="underline font-semibold" @click="metode = 'manual'">Input Manual</button>.
+        <p v-if="errorMsg" role="alert" class="rounded-md bg-red-50 border border-wf-no-border px-4 py-3 text-[15px] text-wf-no-text">
+          {{ errorMsg }}
         </p>
 
-        <label class="flex flex-col gap-2">
-          <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">NAMA KUIS</span>
-          <input
-            v-model="info.judul"
-            type="text"
-            placeholder="mis. Huruf Kapital"
-            class="border border-wf-border rounded-md p-4 text-[17px] leading-6 placeholder:text-wf-muted focus:outline-none focus:ring-2 focus:ring-wf-brand"
-          />
-        </label>
+        <div class="flex flex-wrap gap-4">
+          <label class="flex flex-col gap-2 flex-1 min-w-[260px]">
+            <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">NAMA KUIS</span>
+            <input
+              v-model="info.judul"
+              type="text"
+              placeholder="mis. Huruf Kapital"
+              class="border border-wf-border rounded-md p-4 text-[17px] leading-6 placeholder:text-wf-muted focus:outline-none focus:ring-2 focus:ring-wf-brand"
+            />
+          </label>
+          <label class="flex flex-col gap-2 w-full sm:w-[260px]">
+            <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">BAB</span>
+            <select
+              v-model="info.idBab"
+              class="bg-wf-card border border-wf-border rounded-md p-4 text-[17px] leading-6 focus:outline-none focus:ring-2 focus:ring-wf-brand"
+            >
+              <option :value="null" disabled>Pilih bab</option>
+              <option v-for="bab in daftarBab" :key="bab.idBab" :value="bab.idBab">{{ bab.namaBab }}</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-2 w-full sm:w-[160px]">
+            <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">DURASI (MENIT)</span>
+            <input
+              v-model.number="info.durasi"
+              type="number"
+              min="1"
+              step="1"
+              class="border border-wf-border rounded-md p-4 text-[17px] leading-6 focus:outline-none focus:ring-2 focus:ring-wf-brand"
+            />
+          </label>
+        </div>
 
         <div class="flex flex-col gap-2">
-          <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">DOKUMEN / LAMPIRAN</span>
+          <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">DOKUMEN PDF</span>
           <label
             @dragover.prevent="sedangSeret = true"
             @dragleave="sedangSeret = false"
@@ -705,13 +783,13 @@ function hapusBerkas() {
             <input
               ref="inputBerkas"
               type="file"
-              accept=".pdf,.doc,.docx"
+              accept=".pdf,application/pdf"
               class="sr-only"
               @change="pilihBerkas($event.target.files[0])"
             />
             <span class="size-7"><img :src="fileUpIcon" alt="" class="size-full" /></span>
             <span class="text-[17px] leading-6 text-wf-secondary">Seret berkas ke sini atau klik untuk memilih</span>
-            <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-muted">PDF, DOC, atau DOCX · maksimal 10 MB</span>
+            <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-muted">PDF · maksimal 50 MB</span>
           </label>
           <p v-if="errorBerkas" role="alert" class="text-[15px] text-wf-no">{{ errorBerkas }}</p>
         </div>
@@ -744,6 +822,48 @@ function hapusBerkas() {
           </div>
         </div>
 
+        <div class="flex flex-wrap gap-4">
+          <label class="flex flex-col gap-2 w-full sm:w-[200px]">
+            <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">HALAMAN AWAL</span>
+            <input
+              v-model.number="halamanAwal"
+              type="number"
+              min="1"
+              step="1"
+              class="border border-wf-border rounded-md p-4 text-[17px] leading-6 focus:outline-none focus:ring-2 focus:ring-wf-brand"
+            />
+          </label>
+          <label class="flex flex-col gap-2 w-full sm:w-[200px]">
+            <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">HALAMAN AKHIR</span>
+            <input
+              v-model.number="halamanAkhir"
+              type="number"
+              min="1"
+              step="1"
+              class="border border-wf-border rounded-md p-4 text-[17px] leading-6 focus:outline-none focus:ring-2 focus:ring-wf-brand"
+            />
+          </label>
+          <p class="self-end text-[13px] text-wf-muted pb-4">
+            Isi rentang halaman yang memuat blok "Nomor Soal", "Soal", "Kunci Jawaban", dan "Pembahasan".
+          </p>
+        </div>
+
+        <!-- Laporan hasil impor dari backend -->
+        <div v-if="hasilImpor" class="rounded-md border border-wf-border p-4 flex flex-col gap-2">
+          <p class="text-[17px] font-semibold">{{ hasilImpor.message }}</p>
+          <ul v-if="hasilImpor.gagal?.length" class="text-[15px] text-wf-no-text list-disc pl-5">
+            <li v-for="g in hasilImpor.gagal" :key="g.nomor">Soal {{ g.nomor }}: {{ g.alasan }}</li>
+          </ul>
+          <button
+            v-if="hasilImpor.berhasil?.length"
+            type="button"
+            class="self-start underline font-semibold text-wf-brand"
+            @click="lanjutKeKelola"
+          >
+            Lanjut ke Kelola Kuis
+          </button>
+        </div>
+
         <div class="h-px bg-wf-border-subtle"></div>
 
         <div class="flex justify-end gap-4">
@@ -756,11 +876,11 @@ function hapusBerkas() {
           </button>
           <button
             type="button"
-            disabled
-            title="Menunggu endpoint unggah dokumen di backend"
-            class="rounded-xl bg-wf-accent-hover px-6 py-4 text-[18px] leading-6 font-semibold tracking-[0.2px] text-white opacity-50 cursor-not-allowed"
+            @click="simpanDokumen"
+            :disabled="menyimpan || !berkas"
+            class="rounded-xl bg-wf-accent hover:bg-wf-accent-hover px-6 py-4 text-[18px] leading-6 font-semibold tracking-[0.2px] text-white disabled:opacity-50 disabled:cursor-not-allowed min-w-[190px]"
           >
-            SIMPAN KUIS
+            {{ menyimpan ? 'MENGEKSTRAK...' : 'SIMPAN KUIS' }}
           </button>
         </div>
       </section>
