@@ -2,21 +2,24 @@
 import { supabaseAdmin } from '../config/db.js';
 import { successResponse, errorResponse } from '../models/apiResponse.js';
 import { ROLE } from '../config/roles.js';
+import { buatPasswordKuis } from '../utils/passwordKuis.js';
 
 // pembuat:User(nama) = nama dosen pembuat lewat FK Kuis.idUser, supaya daftar kuis
 // dalam satu bab bisa dibedakan ("Kuis 1 - Dosen A", "Kuis 1 - Dosen B").
 const KUIS_COLUMNS = 'idKuis, idUser, idBab, judul, deskripsi, durasi, tanggalDibuat, pin, pembuat:User(nama)';
 
-// PIN berupa teks supaya angka 0 di depan (mis. "0420") tidak hilang.
-const PIN_FORMAT = /^[0-9]{4,8}$/;
-const PIN_TIDAK_VALID = 'PIN harus berupa teks berisi 4 sampai 8 digit angka.';
+// Password kuis dibuat otomatis oleh server saat kuis dibuat (lihat utils/passwordKuis.js):
+// tepat 8 karakter ASCII yang bisa dicetak (huruf besar/kecil, angka, simbol), tanpa spasi.
+// Kolom Kuis.pin harus bertipe teks dan tidak boleh dibatasi CHECK "hanya angka".
+const PIN_FORMAT = /^[\x21-\x7E]{8}$/;
+const PIN_TIDAK_VALID = 'Password kuis harus berupa teks 8 karakter tanpa spasi.';
 
 // idUser NULL = pembuatnya sudah dihapus, kuisnya diwariskan ke semua admin.
 const bisaDikelola = (kuis, user) =>
   user.role === ROLE.ADMIN && (kuis.idUser === null || kuis.idUser === user.id);
 
-// PIN hanya terlihat oleh dosen yang boleh mengelola kuis ini. Mahasiswa dan dosen lain
-// cukup tahu apakah kuis sudah dibuka (adaPin), bukan PIN-nya.
+// Password hanya terlihat oleh dosen yang boleh mengelola kuis ini. Mahasiswa dan dosen lain
+// cukup tahu apakah kuis sudah dibuka (adaPin), bukan password-nya.
 const keRespons = ({ pin, pembuat, ...kuis }, user) => {
   const kelola = bisaDikelola(kuis, user);
   return {
@@ -86,19 +89,20 @@ export const getKuisById = async (req, res) => {
 // Hanya admin (guru) yang bisa membuat kuis — pemiliknya adalah guru yang sedang login
 export const createKuis = async (req, res) => {
   try {
-    const { idBab, judul, deskripsi, durasi, pin } = req.body;
+    // pin tidak diterima dari client: password dibuat otomatis oleh server.
+    const { idBab, judul, deskripsi, durasi } = req.body;
 
     if (!idBab || !judul || !judul.trim()) {
       return res.status(400).json(errorResponse({ message: 'idBab dan judul wajib diisi.' }));
     }
 
-    // durasi opsional: editor kuis di frontend belum punya isiannya, jadi kalau
-    // tidak dikirim database memakai default kolomnya (30 menit).
+    // durasi opsional: kalau tidak dikirim database memakai default kolomnya (30 menit).
     const payload = {
       idUser: req.currentUser.id,
       idBab,
       judul: judul.trim(),
       deskripsi: deskripsi ?? null,
+      pin: buatPasswordKuis(),
     };
     if (durasi !== undefined && durasi !== null) {
       const durasiInt = Number(durasi);
@@ -106,14 +110,6 @@ export const createKuis = async (req, res) => {
         return res.status(400).json(errorResponse({ message: 'durasi harus berupa bilangan bulat positif.' }));
       }
       payload.durasi = durasiInt;
-    }
-    // PIN opsional saat membuat: kuis tanpa PIN belum bisa dikerjakan mahasiswa,
-    // jadi dosen bisa menyusun soal dulu dan membukanya belakangan.
-    if (pin !== undefined && pin !== null) {
-      if (typeof pin !== 'string' || !PIN_FORMAT.test(pin)) {
-        return res.status(400).json(errorResponse({ message: PIN_TIDAK_VALID }));
-      }
-      payload.pin = pin;
     }
 
     const { data, error } = await supabaseAdmin
@@ -140,10 +136,11 @@ export const createKuis = async (req, res) => {
 export const updateKuis = async (req, res) => {
   try {
     const { id } = req.params;
-    const { idBab, judul, deskripsi, durasi, pin } = req.body;
+    // generatePin: true = buat password baru (dipakai tombol "Generate" di pop-up password).
+    const { idBab, judul, deskripsi, durasi, pin, generatePin } = req.body;
 
     if (idBab === undefined && judul === undefined && deskripsi === undefined
-      && durasi === undefined && pin === undefined) {
+      && durasi === undefined && pin === undefined && generatePin === undefined) {
       return res.status(400).json(errorResponse({ message: 'Tidak ada data yang diubah.' }));
     }
 
@@ -179,13 +176,16 @@ export const updateKuis = async (req, res) => {
       }
       updatePayload.durasi = durasiInt;
     }
-    // pin: null = menutup kuis lagi (mahasiswa tidak bisa memulai attempt baru)
+    // pin: null = menutup kuis lagi (mahasiswa tidak bisa memulai attempt baru).
+    // Kalau dikirim, harus sesuai format password kuis.
     if (pin !== undefined) {
       if (pin !== null && (typeof pin !== 'string' || !PIN_FORMAT.test(pin))) {
         return res.status(400).json(errorResponse({ message: PIN_TIDAK_VALID }));
       }
       updatePayload.pin = pin;
     }
+    // Password baru hanya dibuat kalau diminta eksplisit; menyimpan/mengedit kuis tidak mengubahnya.
+    if (generatePin === true) updatePayload.pin = buatPasswordKuis();
 
     const { data, error } = await supabaseAdmin
       .from('Kuis')

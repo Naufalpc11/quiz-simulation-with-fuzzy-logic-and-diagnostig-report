@@ -52,9 +52,9 @@ async function simpan() {
     errorMsg.value = 'Judul bab wajib diisi.'
     return
   }
-  // Aturan yang sama dengan urutanValid() di BabController.
-  if (!Number.isInteger(f.urutanBab) || f.urutanBab < 0) {
-    errorMsg.value = 'Nomor bab harus angka bulat 0 atau lebih.'
+  // Aturan yang sama dengan urutanValid() di BabController: minimal 1.
+  if (!Number.isInteger(f.urutanBab) || f.urutanBab < 1) {
+    errorMsg.value = 'Nomor bab harus angka bulat minimal 1.'
     return
   }
 
@@ -131,7 +131,7 @@ async function simpan() {
             <input
               v-model.number="form.urutanBab"
               type="number"
-              min="0"
+              min="1"
               step="1"
               class="bg-wf-card border border-wf-border rounded-md p-4 text-[17px] leading-6 focus:outline-none focus:ring-2 focus:ring-wf-brand"
             />

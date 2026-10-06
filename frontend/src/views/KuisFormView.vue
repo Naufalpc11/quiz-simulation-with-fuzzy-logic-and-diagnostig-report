@@ -8,6 +8,7 @@ import { ambilDaftarBab, ambilKuis, ubahKuis } from '../services/kuis'
 
 // Figma "Edit kuis": ubah info kuis (nama, bab, deskripsi). Durasi dan soal diubah
 // lewat halaman Edit Soal (EditorKuisView).
+// Nama kuis dan deskripsi = teks biasa, tanpa persamaan matematika.
 const props = defineProps({ id: { type: String, required: true } })
 
 const router = useRouter()
@@ -37,7 +38,11 @@ onMounted(async () => {
   try {
     const [bab, kuis] = await Promise.all([ambilDaftarBab(), ambilKuis(props.id)])
     daftarBab.value = bab
-    form.value = { judul: kuis.judul, idBab: kuis.idBab, deskripsi: kuis.deskripsi ?? '' }
+    form.value = {
+      judul: kuis.judul,
+      idBab: kuis.idBab,
+      deskripsi: kuis.deskripsi ?? '',
+    }
     idBabAsal.value = kuis.idBab
     if (kuis.bisaDikelola === false) kuisLain.value = kuis
   } catch (err) {
@@ -116,7 +121,8 @@ async function simpan() {
             <input
               v-model="form.judul"
               type="text"
-              class="bg-wf-card border border-wf-border rounded-md p-4 text-[17px] leading-6 focus:outline-none focus:ring-2 focus:ring-wf-brand"
+              placeholder="masukkan nama kuis"
+              class="bg-wf-card border border-wf-border rounded-md p-4 text-[17px] leading-6 placeholder:text-wf-muted focus:outline-none focus:ring-2 focus:ring-wf-brand"
             />
           </label>
           <label class="flex flex-col gap-2 w-full sm:w-[260px]">
@@ -130,14 +136,14 @@ async function simpan() {
           </label>
         </div>
 
-
         <!-- Tidak ada di Figma, tapi sebelumnya bisa diubah lewat pop-up edit. -->
         <label class="flex flex-col gap-2">
           <span class="font-mono text-[15px] leading-5 tracking-[1px] text-wf-secondary">DESKRIPSI (OPSIONAL)</span>
           <textarea
             v-model="form.deskripsi"
-            rows="3"
-            class="bg-wf-card border border-wf-border rounded-md p-4 text-[17px] leading-6 focus:outline-none focus:ring-2 focus:ring-wf-brand"
+            rows="4"
+            placeholder="Tulis deskripsi kuis."
+            class="bg-wf-card border border-wf-border rounded-md p-4 text-[17px] leading-6 placeholder:text-wf-muted focus:outline-none focus:ring-2 focus:ring-wf-brand"
           ></textarea>
         </label>
 

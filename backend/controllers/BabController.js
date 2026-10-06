@@ -5,8 +5,8 @@ import { successResponse, errorResponse } from '../models/apiResponse.js';
 const BAB_COLUMNS = 'idBab, namaBab, deskripsi, urutanBab, dibuatOleh, tanggalDibuat, tanggalDiupdate';
 
 // Nomor bab dipakai untuk mengurutkan daftar, jadi harus benar-benar angka bulat.
-// "3" dari body JSON yang salah ketik akan tertolak di sini, bukan jadi urutan aneh di daftar.
-const urutanValid = (nilai) => Number.isInteger(nilai) && nilai >= 0;
+// Minimal 1 — tidak ada bab nomor 0, meski dikirim paksa lewat API.
+const urutanValid = (nilai) => Number.isInteger(nilai) && nilai >= 1;
 
 // 23505 = unique violation pada idx_bab_nama_unik (nama bab unik, tidak peka huruf besar/kecil)
 const namaBabDobel = (res, namaBab) =>
@@ -64,7 +64,7 @@ export const createBab = async (req, res) => {
     }
 
     if (urutanBab !== undefined && !urutanValid(urutanBab)) {
-      return res.status(400).json(errorResponse({ message: 'Urutan bab harus berupa angka bulat tidak negatif.' }));
+      return res.status(400).json(errorResponse({ message: 'Urutan bab harus berupa angka bulat minimal 1.' }));
     }
 
     const { data, error } = await supabaseAdmin
@@ -72,7 +72,7 @@ export const createBab = async (req, res) => {
       .insert({
         namaBab: namaBab.trim(),
         deskripsi: deskripsi ?? null,
-        urutanBab: urutanBab ?? 0,
+        urutanBab: urutanBab ?? 1,
         dibuatOleh: req.currentUser.id,
       })
       .select(BAB_COLUMNS)
@@ -109,7 +109,7 @@ export const updateBab = async (req, res) => {
     if (deskripsi !== undefined) updatePayload.deskripsi = deskripsi;
     if (urutanBab !== undefined) {
       if (!urutanValid(urutanBab)) {
-        return res.status(400).json(errorResponse({ message: 'Urutan bab harus berupa angka bulat tidak negatif.' }));
+        return res.status(400).json(errorResponse({ message: 'Urutan bab harus berupa angka bulat minimal 1.' }));
       }
       updatePayload.urutanBab = urutanBab;
     }
