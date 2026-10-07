@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ambilDaftarBab } from '../services/bab'
+import { ambilDaftarKuis } from '../services/kuis'
 import { getAvatar, getUser, SessionExpiredError } from '../services/auth'
 import logoImage from '../assets/logo-esikap.png'
 import avatarImage from '../assets/icons/avatar.svg'
@@ -11,6 +12,7 @@ const router = useRouter()
 const user = ref(getUser())
 const avatar = ref(getAvatar() || avatarImage)
 const bab = ref([])
+const kuis = ref([])
 const loading = ref(true)
 const errorMsg = ref('')
 const notice = ref('')
@@ -53,20 +55,42 @@ const fallbackRoadmap = [
   },
 ]
 
-const roadmap = computed(() => bab.value.length
-  ? bab.value.map((item, index) => ({
-      ...fallbackRoadmap[index % fallbackRoadmap.length],
-      namaBab: item.namaBab,
-    }))
-  : fallbackRoadmap)
+const roadmap = computed(() => bab.value.map((item, index) => {
+  const kuisBab = kuis.value.filter((quiz) => String(quiz.idBab) === String(item.idBab))
+  const kuisTersedia = kuisBab.filter((quiz) => quiz.tersedia)
+  const selesai = kuisTersedia.filter((quiz) => quiz.statusBelajar === 'Selesai').length
+  const hasilTerakhir = kuisTersedia.find((quiz) => quiz.statusBelajar === 'Selesai')
+  const template = fallbackRoadmap[index % fallbackRoadmap.length]
+  const terkunci = !hasilTerakhir
+
+  return {
+    ...template,
+    namaBab: item.namaBab,
+    status: terkunci ? 'terkunci' : 'roadmap',
+    ringkasan: terkunci
+      ? 'Belum dibuka oleh dosen.'
+      : selesai
+        ? `${selesai} kuis selesai. Roadmap dapat digunakan untuk memperkuat materi bab ini.`
+        : 'Kuis bab ini sudah tersedia untuk dikerjakan.',
+    detail: terkunci
+      ? kuisTersedia.length ? 'Kerjakan kuis untuk membuka roadmap' : 'Belum ada kuis yang dibuka'
+      : `${selesai} dari ${kuisTersedia.length} kuis selesai`,
+    idPengerjaan: hasilTerakhir?.idPengerjaanTerakhir ?? null,
+  }
+}))
 
 function bukaRoadmap(item) {
-  if (item.status === 'terkunci') {
-    notice.value = `Roadmap ${item.namaBab} masih terkunci. Selesaikan bab sebelumnya terlebih dahulu.`
+  if (item.status === 'terkunci' || !item.idPengerjaan) {
+    notice.value = `Roadmap ${item.namaBab} baru tersedia setelah Anda menyelesaikan kuis.`
     return
   }
   const itemBab = bab.value.find((data) => data.namaBab === item.namaBab)
-  if (itemBab?.idBab) router.push(`/peta-belajar/${itemBab.idBab}/roadmap`)
+  if (itemBab?.idBab) {
+    router.push({
+      path: `/peta-belajar/${itemBab.idBab}/roadmap`,
+      query: { pengerjaan: item.idPengerjaan },
+    })
+  }
   else notice.value = `Roadmap ${item.namaBab} akan segera tersedia.`
 }
 
@@ -76,7 +100,12 @@ function riwayatSoal(item) {
 
 onMounted(async () => {
   try {
-    bab.value = await ambilDaftarBab()
+    const [dataBab, dataKuis] = await Promise.all([
+      ambilDaftarBab(),
+      ambilDaftarKuis(),
+    ])
+    bab.value = dataBab
+    kuis.value = dataKuis
   } catch (err) {
     if (err instanceof SessionExpiredError) {
       router.push('/')
@@ -117,6 +146,7 @@ onMounted(async () => {
               type="button"
               class="rounded-xl px-4 py-3 text-sm font-semibold"
               :class="item.status === 'terkunci' ? 'border border-red-400 text-wf-no-text' : 'bg-wf-brand text-white hover:bg-wf-accent-hover'"
+              :disabled="item.status === 'terkunci'"
               @click="bukaRoadmap(item)"
             >
               {{ item.status === 'terkunci' ? 'TERKUNCI' : 'LIHAT ROADMAP' }}

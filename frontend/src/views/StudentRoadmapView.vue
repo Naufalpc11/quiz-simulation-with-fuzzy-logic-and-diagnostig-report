@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ambilBab } from '../services/bab'
+import { ambilHasilPengerjaan } from '../services/kuis'
 import { getAvatar, getUser, SessionExpiredError } from '../services/auth'
 import logoImage from '../assets/logo-esikap.png'
 import avatarImage from '../assets/icons/avatar.svg'
@@ -12,6 +13,7 @@ const router = useRouter()
 const user = ref(getUser())
 const avatar = ref(getAvatar() || avatarImage)
 const bab = ref(null)
+const hasil = ref(null)
 const loading = ref(true)
 const errorMsg = ref('')
 
@@ -30,13 +32,40 @@ const tahapDefault = [
   },
 ]
 
-const tahap = computed(() => tahapDefault)
+const tahap = computed(() => {
+  const kelemahan = (hasil.value?.detailItems || [])
+    .filter((item) => !item.meta?.isCorrect || Number(item.crispScore) < 60)
+    .sort((a, b) => Number(a.crispScore || 0) - Number(b.crispScore || 0))
+  if (!kelemahan.length) return tahapDefault
+
+  const kelompok = new Map()
+  for (const item of kelemahan) {
+    const topik = item.linguisticLevel || 'Materi yang perlu diperkuat'
+    if (!kelompok.has(topik)) kelompok.set(topik, [])
+    kelompok.get(topik).push(item)
+  }
+  return [...kelompok.entries()].map(([judul, items]) => ({
+    judul,
+    ringkasan: `${items.length} soal perlu diperkuat berdasarkan ketepatan dan kecepatan jawaban Anda.`,
+    tujuan: `Memahami kembali konsep ${judul.toLowerCase()} dan mengenali pola kesalahan pada soal yang belum tepat.`,
+    kegiatan: `Pelajari kembali konsep ${judul.toLowerCase()} · tinjau pembahasan soal · kerjakan latihan serupa dengan memperhatikan waktu.`,
+  }))
+})
 const namaBab = computed(() => bab.value?.namaBab || 'Ejaan')
-const nilaiTerakhir = computed(() => namaBab.value.toLowerCase().includes('ejaan') ? 80 : 0)
+const nilaiTerakhir = computed(() => hasil.value?.skorFuzzy ?? hasil.value?.akurasi ?? 0)
 
 onMounted(async () => {
   try {
-    bab.value = await ambilBab(props.id)
+    const idPengerjaan = route.query.pengerjaan
+    if (typeof idPengerjaan !== 'string' || !idPengerjaan) {
+      throw new Error('Roadmap baru tersedia setelah Anda menyelesaikan kuis.')
+    }
+    const [dataBab, dataHasil] = await Promise.all([
+      ambilBab(props.id),
+      ambilHasilPengerjaan(idPengerjaan),
+    ])
+    bab.value = dataBab
+    hasil.value = dataHasil
   } catch (err) {
     if (err instanceof SessionExpiredError) {
       router.push('/')
