@@ -87,8 +87,8 @@ onMounted(async () => {
     <StudentHeader active="latihan" />
 
     <main class="mx-auto max-w-[1000px] px-6 pb-12 pt-9 sm:px-10 lg:px-0">
-      <p class="font-mono text-[13px] uppercase tracking-[0.12em] text-wf-secondary">
-        <RouterLink to="/dashboard" class="hover:text-wf-brand">← Bab</RouterLink>
+      <p class="font-mono text-[18px] uppercase tracking-[0.12em] text-wf-text">
+        <RouterLink to="/dashboard" class="font-semibold hover:text-wf-brand">← Bab</RouterLink>
         <span class="mx-2">/</span>{{ bab?.namaBab || 'Memuat...' }}
       </p>
       <h1 class="mt-4 text-[27px] font-bold sm:text-[30px]">{{ bab?.namaBab || 'Latihan' }}</h1>

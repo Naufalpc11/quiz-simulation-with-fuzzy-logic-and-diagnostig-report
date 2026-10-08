@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ambilBab } from '../services/bab'
 import { ambilHasilPengerjaan } from '../services/kuis'
 import { getAvatar, getUser, SessionExpiredError } from '../services/auth'
@@ -9,6 +9,7 @@ import avatarImage from '../assets/icons/avatar.svg'
 import StudentHeader from '../components/StudentHeader.vue'
 
 const props = defineProps({ id: { type: String, required: true } })
+const route = useRoute()
 const router = useRouter()
 const user = ref(getUser())
 const avatar = ref(getAvatar() || avatarImage)
@@ -83,8 +84,8 @@ onMounted(async () => {
     <StudentHeader active="peta" />
 
     <main class="mx-auto max-w-[1000px] px-6 pb-12 pt-9 sm:px-10 lg:px-0">
-      <p class="font-mono text-[13px] uppercase tracking-[0.12em] text-wf-secondary">
-        <RouterLink to="/peta-belajar" class="hover:text-wf-brand">← Peta belajar</RouterLink>
+      <p class="font-mono text-[18px] uppercase tracking-[0.12em] text-wf-text">
+        <RouterLink to="/peta-belajar" class="font-semibold hover:text-wf-brand">← Peta belajar</RouterLink>
         <span class="mx-2">/</span>{{ namaBab }}
       </p>
       <h1 class="mt-5 text-[27px] font-bold sm:text-[30px]">Roadmap bab {{ namaBab }}</h1>

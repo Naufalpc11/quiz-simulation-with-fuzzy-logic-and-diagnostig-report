@@ -60,7 +60,7 @@ onMounted(async () => {
     <StudentHeader active="latihan" />
 
     <main class="mx-auto max-w-[900px] px-6 pb-12 pt-8 sm:px-0">
-      <button type="button" class="font-mono text-[13px] uppercase tracking-[0.12em] text-wf-brand" @click="kembaliKeHasil">
+      <button type="button" class="font-mono text-[18px] font-semibold uppercase tracking-[0.12em] text-wf-text hover:text-wf-brand" @click="kembaliKeHasil">
         ← Kembali ke hasil kuis
       </button>
       <p v-if="loading" class="mt-7 text-wf-secondary">Menyusun laporan diagnostik...</p>
