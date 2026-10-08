@@ -12,6 +12,7 @@ All User:
 3. Logout
 4. Melihat Akun (GET /api/auth/me)
 5. Mengedit Akun: nama & username (PUT /api/auth/me)
+6. Megubah foto profile
 
 Pengguna/Mahasiswa:
 1. Melihat Soal (tanpa kunci jawaban & pembahasan, setelah memasukkan PIN kuis)
@@ -36,10 +37,13 @@ Admin:
 
 Yang Belum Kelar (backend):
 Pengguna:
-1. Melihat Roadmap (tabel Roadmap sudah ada, endpoint belum)
 2. Melihat Report Mahasiswa: riwayat & statistik semua kuis (hasil per kuis sudah ada, daftar riwayat belum)
 
 Admin:
 1. Melihat Report Mahasiswa: rekap nilai mahasiswa yang mengerjakan kuisnya
 edit Akun
 3. Melihat Report Mahasiswa
+
+Yang harus dibaikin after asist ke ibunya:
+1. Hak Akses kuis untuk akun dosen
+2. Random urutan soal yang sudah dibuat
