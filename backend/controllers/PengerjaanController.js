@@ -341,15 +341,19 @@ export const submitPengerjaan = async (req, res) => {
       return dbError(res, finalizeError, 'Gagal menyimpan hasil pengerjaan.');
     }
 
+    const nilai = questions.length > 0
+      ? Math.round((result.totalBenar / questions.length) * 100)
+      : 0;
+
     return res.json(successResponse({
       message: 'Kuis berhasil dikirim dan dinilai.',
       data: {
         idPengerjaan,
         idKuis: attempt.idKuis,
         status: 'selesai',
-        nilai: result.akurasi,
         waktuPengerjaan: durationSeconds,
         ...result,
+        nilai,
       },
     }));
   } catch (error) {
@@ -364,7 +368,7 @@ function resultResponse(attempt) {
     status: attempt.status,
     waktuMulai: attempt.waktuMulai,
     waktuSelesai: attempt.waktuSelesai,
-    nilai: attempt.akurasi,
+    nilai: Math.round(Number(attempt.score ?? attempt.akurasi) || 0),
     waktuPengerjaan: attempt.durasiPengerjaan,
     skorFuzzy: attempt.skorFuzzy,
     kategoriFuzzy: attempt.kategoriFuzzy,
