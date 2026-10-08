@@ -12,7 +12,6 @@ All User:
 3. Logout
 4. Melihat Akun (GET /api/auth/me)
 5. Mengedit Akun: nama & username (PUT /api/auth/me)
-6. Megubah foto profile
 
 Pengguna/Mahasiswa:
 1. Melihat Soal (tanpa kunci jawaban & pembahasan, setelah memasukkan PIN kuis)
